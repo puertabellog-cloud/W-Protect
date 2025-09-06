@@ -1,0 +1,8 @@
+{
+  "name": "w-protect",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite",
+  "id": "0abb981f"
+}
