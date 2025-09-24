@@ -1,5 +1,5 @@
-// const API_BASE_URL = 'https://oikoom.azurewebsites.net/oikoom/api/w';
-const API_BASE_URL = 'http://localhost:8080/oikoom/api/w';
+const API_BASE_URL = 'https://oikoom.azurewebsites.net/oikoom/api/w';
+// const API_BASE_URL = 'http://localhost:8080/oikoom/api/w';
 
 export interface ProfileData {
   name: string;
