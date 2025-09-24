@@ -229,6 +229,46 @@ input {
   line-height: 1.5;
 }
 
+/* W-Protect Header Styles */
+.w-protect-logo {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--womxi-pink-500);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--womxi-pink-50);
+  transition: all 0.3s ease;
+}
+
+.dark .w-protect-logo {
+  background: var(--womxi-pink-900);
+  border-color: var(--womxi-pink-400);
+}
+
+.w-protect-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(217, 70, 166, 0.3);
+}
+
+.w-protect-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0;
+  color: var(--foreground);
+  letter-spacing: 0.5px;
+}
+
+.w-protect-subtitle {
+  font-size: 0.7rem;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-weight: 300;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 /* Animations */
 @keyframes pulse {
   0% {

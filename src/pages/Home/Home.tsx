@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonIcon } from '@ionic/react';
-import { moonOutline, sunnyOutline } from 'ionicons/icons';
+import { IonPage, IonContent } from '@ionic/react';
 
+import { AppHeader } from '../../components/AppHeader';
 import { Dashboard } from '../../components/dashboard/Dashboard';
 import { EmergencyAlert } from '../../components/dashboard/EmergencyAlert';
 import { ComingSoonScreen } from '../../components/dashboard/ComingSoonScreen';
@@ -48,23 +48,15 @@ const Home: React.FC = () => {
         }
     };
 
-    // Si estamos en el dashboard, mostramos el header con el toggle de tema
+    // Si estamos en el dashboard, mostramos el header personalizado
     if (currentScreen === 'dashboard') {
         return (
             <IonPage>
-                <IonHeader>
-                    <IonToolbar style={{ '--background': 'var(--primary)', '--color': 'var(--primary-foreground)' }}>
-                        <IonTitle>W-Protect 💜</IonTitle>
-                        <IonButton 
-                            fill="clear" 
-                            slot="end"
-                            onClick={toggleDarkMode}
-                            style={{ '--color': 'var(--primary-foreground)' }}
-                        >
-                            <IonIcon icon={isDark ? sunnyOutline : moonOutline} />
-                        </IonButton>
-                    </IonToolbar>
-                </IonHeader>
+                <AppHeader 
+                    isDarkMode={isDark}
+                    onToggleDarkMode={toggleDarkMode}
+                    showLogo={true}
+                />
                 <IonContent>
                     <Dashboard onFeatureSelect={handleFeatureSelect} />
                 </IonContent>

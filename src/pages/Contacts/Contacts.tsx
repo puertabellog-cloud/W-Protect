@@ -8,10 +8,15 @@ import {
 } from '@ionic/react';
 import { add, personCircle, trash, create } from 'ionicons/icons';
 import { Contacts } from '@capacitor-community/contacts';
+import { AppHeader } from '../../components/AppHeader';
 
+// Configuración de projection más completa
 const projection = {
   name: true,
   phones: true,
+  emails: true,
+  organizationName: true,
+  nickname: true
 };
 
 interface EmergencyContact {
@@ -51,32 +56,90 @@ const ContactsPage: React.FC = () => {
       if (permission.contacts === 'granted') {
         const result = await Contacts.getContacts({ projection });
 
+        console.log('=== DEBUG: Contacts result ===');
+        console.log('Total contacts:', result.contacts.length);
+        
+        // Mostrar los primeros 3 contactos para entender la estructura
+        result.contacts.slice(0, 3).forEach((contact, index) => {
+          console.log(`Contact ${index + 1}:`, contact);
+          console.log(`Contact ${index + 1} name:`, getContactName(contact));
+        });
+
         if (!result.contacts.length) {
           setToastMessage("No se encontraron contactos en el dispositivo");
           return;
         }
 
-        setAllContacts(result.contacts);
-        setFilteredContacts(result.contacts);
+        // Filtrar contactos que tienen al menos un número de teléfono
+        const contactsWithPhones = result.contacts.filter(contact => 
+          contact.phones && contact.phones.length > 0
+        );
+
+        console.log('Contacts with phones:', contactsWithPhones.length);
+        
+        // Mostrar algunos contactos filtrados
+        contactsWithPhones.slice(0, 2).forEach((contact, index) => {
+          console.log(`Filtered contact ${index + 1}:`, contact);
+          console.log(`Filtered contact ${index + 1} name:`, getContactName(contact));
+        });
+
+        setAllContacts(contactsWithPhones);
+        setFilteredContacts(contactsWithPhones);
         setIsModalOpen(true);
       } else {
         setToastMessage("Permiso denegado para acceder a contactos");
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error accessing contacts:', error);
       setToastMessage("Error al acceder a contactos");
     }
   };
 
   // === Obtener nombre de contacto (manejo de alias) ===
   const getContactName = (c: any) => {
-    return (
-      c.alias || // alias personalizado
-      c.name?.[0]?.display ||
-      c.name?.[0]?.givenName ||
-      c.name?.[0]?.familyName ||
-      "Sin nombre"
-    );
+    // Para debugging - comentar después de solucionar
+    // console.log('Contact structure:', c);
+    
+    // Intentar diferentes formas de obtener el nombre
+    let name = '';
+    
+    // 1. Nickname (a veces es más confiable)
+    if (c.nickname && c.nickname.length > 0) {
+      name = c.nickname[0];
+    }
+    
+    // 2. Verificar el array de nombres
+    if (!name && c.name && Array.isArray(c.name) && c.name.length > 0) {
+      const nameObj = c.name[0];
+      
+      // Intentar display name primero
+      if (nameObj.display) {
+        name = nameObj.display;
+      }
+      // Luego combinar nombres
+      else if (nameObj.givenName || nameObj.familyName) {
+        const given = nameObj.givenName || '';
+        const family = nameObj.familyName || '';
+        name = `${given} ${family}`.trim();
+      }
+    }
+    
+    // 3. Propiedades directas del contacto
+    if (!name) {
+      name = c.displayName || c.fullName || '';
+    }
+    
+    // 4. Organización si no hay nombre personal
+    if (!name && c.organizationName && c.organizationName.length > 0) {
+      name = c.organizationName[0];
+    }
+    
+    // 5. Como último recurso, usar el número de teléfono
+    if (!name && c.phones && c.phones.length > 0) {
+      name = c.phones[0].number;
+    }
+    
+    return name || "Contacto sin nombre";
   };
 
   // === Agregar contacto a la lista de emergencia ===
@@ -152,11 +215,10 @@ const ContactsPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Contactos de Emergencia</IonTitle>
-        </IonToolbar>
-      </IonHeader>
+      <AppHeader 
+        title="Contactos de Emergencia"
+        showLogo={true}
+      />
 
       <IonContent fullscreen>
         {/* Intro */}
