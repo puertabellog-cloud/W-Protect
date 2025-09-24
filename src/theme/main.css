@@ -229,10 +229,10 @@ input {
   line-height: 1.5;
 }
 
-/* W-Protect Header Styles */
+/* W-Protect Header Styles - iPhone optimized */
 .w-protect-logo {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: 2px solid var(--womxi-pink-500);
   border-radius: 6px;
   display: flex;
@@ -240,6 +240,7 @@ input {
   justify-content: center;
   background: var(--womxi-pink-50);
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .dark .w-protect-logo {
@@ -253,20 +254,30 @@ input {
 }
 
 .w-protect-title {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: bold;
   margin: 0;
   color: var(--foreground);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
 }
 
 .w-protect-subtitle {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   margin: 0;
+  margin-top: 2px;
   color: var(--muted-foreground);
   font-weight: 300;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
+  line-height: 1;
+}
+
+/* iPhone safe area support */
+@supports (padding-top: env(safe-area-inset-top)) {
+  ion-header ion-toolbar {
+    padding-top: env(safe-area-inset-top) !important;
+  }
 }
 
 /* Animations */

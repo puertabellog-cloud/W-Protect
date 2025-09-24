@@ -17,19 +17,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   showLogo = true 
 }) => {
   return (
-    <IonHeader>
+    <IonHeader className="ion-no-border">
       <IonToolbar style={{
         '--background': 'var(--card)',
         '--color': 'var(--foreground)',
-        borderBottom: '1px solid var(--border)',
-        padding: '8px 0'
+        '--border-width': '0',
+        '--min-height': '44px',
+        paddingTop: 'env(safe-area-inset-top)',
+        borderBottom: '1px solid var(--border)'
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 16px',
-          height: '56px'
+          padding: '12px 16px 8px 16px',
+          minHeight: '44px'
         }}>
           {/* Logo y título */}
           <div style={{

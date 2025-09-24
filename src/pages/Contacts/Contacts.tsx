@@ -10,13 +10,10 @@ import { add, personCircle, trash, create } from 'ionicons/icons';
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
 
-// Configuración de projection más completa
+// Configuración simplificada para mejor compatibilidad
 const projection = {
   name: true,
-  phones: true,
-  emails: true,
-  organizationName: true,
-  nickname: true
+  phones: true
 };
 
 interface EmergencyContact {
@@ -59,11 +56,11 @@ const ContactsPage: React.FC = () => {
         console.log('=== DEBUG: Contacts result ===');
         console.log('Total contacts:', result.contacts.length);
         
-        // Mostrar los primeros 3 contactos para entender la estructura
-        result.contacts.slice(0, 3).forEach((contact, index) => {
-          console.log(`Contact ${index + 1}:`, contact);
-          console.log(`Contact ${index + 1} name:`, getContactName(contact));
-        });
+        // Solo mostrar el primer contacto para debug
+        if (result.contacts.length > 0) {
+          console.log('Primer contacto para análisis:');
+          getContactName(result.contacts[0]);
+        }
 
         if (!result.contacts.length) {
           setToastMessage("No se encontraron contactos en el dispositivo");
@@ -76,12 +73,6 @@ const ContactsPage: React.FC = () => {
         );
 
         console.log('Contacts with phones:', contactsWithPhones.length);
-        
-        // Mostrar algunos contactos filtrados
-        contactsWithPhones.slice(0, 2).forEach((contact, index) => {
-          console.log(`Filtered contact ${index + 1}:`, contact);
-          console.log(`Filtered contact ${index + 1} name:`, getContactName(contact));
-        });
 
         setAllContacts(contactsWithPhones);
         setFilteredContacts(contactsWithPhones);
@@ -95,51 +86,55 @@ const ContactsPage: React.FC = () => {
     }
   };
 
-  // === Obtener nombre de contacto (manejo de alias) ===
-  const getContactName = (c: any) => {
-    // Para debugging - comentar después de solucionar
-    // console.log('Contact structure:', c);
+  // === Obtener nombre de contacto (CORREGIDO) ===
+  const getContactName = (contact: any) => {
+    console.log('=== DEBUG CONTACTO ===');
+    console.log('Contact completo:', JSON.stringify(contact, null, 2));
     
-    // Intentar diferentes formas de obtener el nombre
-    let name = '';
-    
-    // 1. Nickname (a veces es más confiable)
-    if (c.nickname && c.nickname.length > 0) {
-      name = c.nickname[0];
-    }
-    
-    // 2. Verificar el array de nombres
-    if (!name && c.name && Array.isArray(c.name) && c.name.length > 0) {
-      const nameObj = c.name[0];
+    // ¡AQUÍ ESTABA EL ERROR! 
+    // El name NO es un array, es un objeto directo
+    if (contact.name && typeof contact.name === 'object' && !Array.isArray(contact.name)) {
+      const nameData = contact.name;
+      console.log('Name object data:', nameData);
       
-      // Intentar display name primero
-      if (nameObj.display) {
-        name = nameObj.display;
+      // Método 1: display name (el más común)
+      if (nameData.display && nameData.display.trim()) {
+        console.log('✅ Nombre encontrado en name.display:', nameData.display);
+        return nameData.display;
       }
-      // Luego combinar nombres
-      else if (nameObj.givenName || nameObj.familyName) {
-        const given = nameObj.givenName || '';
-        const family = nameObj.familyName || '';
-        name = `${given} ${family}`.trim();
+      
+      // Método 2: given name (nombre de pila)
+      if (nameData.given && nameData.given.trim()) {
+        console.log('✅ Nombre encontrado en name.given:', nameData.given);
+        return nameData.given;
+      }
+      
+      // Método 3: combinar given + family
+      const firstName = nameData.given || '';
+      const lastName = nameData.family || '';
+      
+      if (firstName.trim() || lastName.trim()) {
+        const fullName = `${firstName} ${lastName}`.trim();
+        console.log('✅ Nombre combinado given+family:', fullName);
+        return fullName;
       }
     }
     
-    // 3. Propiedades directas del contacto
-    if (!name) {
-      name = c.displayName || c.fullName || '';
+    // Método 4: displayName directo (por si acaso)
+    if (contact.displayName && contact.displayName.trim()) {
+      console.log('✅ Nombre encontrado en displayName:', contact.displayName);
+      return contact.displayName;
     }
     
-    // 4. Organización si no hay nombre personal
-    if (!name && c.organizationName && c.organizationName.length > 0) {
-      name = c.organizationName[0];
+    // Método 5: Como último recurso, usar el número
+    if (contact.phones && contact.phones.length > 0) {
+      const phoneNumber = contact.phones[0].number;
+      console.log('❌ Usando teléfono como nombre:', phoneNumber);
+      return phoneNumber;
     }
     
-    // 5. Como último recurso, usar el número de teléfono
-    if (!name && c.phones && c.phones.length > 0) {
-      name = c.phones[0].number;
-    }
-    
-    return name || "Contacto sin nombre";
+    console.log('❌ No se pudo extraer nombre, usando fallback');
+    return "Sin nombre";
   };
 
   // === Agregar contacto a la lista de emergencia ===
