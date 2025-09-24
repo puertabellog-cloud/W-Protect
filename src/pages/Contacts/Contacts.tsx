@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
@@ -29,6 +29,19 @@ const ContactsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string>("");
   const [editContactIndex, setEditContactIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState<string>("");
+
+  // Cargar contactos de emergencia desde localStorage al inicio
+  useEffect(() => {
+    const savedContacts = localStorage.getItem('emergencyContacts');
+    if (savedContacts) {
+      setEmergencyContacts(JSON.parse(savedContacts));
+    }
+  }, []);
+
+  // Guardar contactos en localStorage cada vez que cambien
+  useEffect(() => {
+    localStorage.setItem('emergencyContacts', JSON.stringify(emergencyContacts));
+  }, [emergencyContacts]);
 
   // === Obtener todos los contactos ===
   const openContacts = async () => {

@@ -1,0 +1,78 @@
+/* 
+ * Womxi Ionic Component Overrides
+ * Customizes Ionic components to use Womxi theme colors
+ */
+
+/* Toolbar customization */
+ion-toolbar {
+  --background: var(--primary);
+  --color: var(--primary-foreground);
+}
+
+/* Button customizations */
+ion-button {
+  --border-radius: var(--radius);
+}
+
+ion-button.womxi-primary {
+  --background: var(--primary);
+  --color: var(--primary-foreground);
+}
+
+ion-button.womxi-secondary {
+  --background: var(--secondary);
+  --color: var(--secondary-foreground);
+}
+
+/* Card customizations */
+ion-card {
+  --background: var(--card);
+  --color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Content customization */
+ion-content {
+  --background: var(--background);
+  --color: var(--foreground);
+}
+
+/* Tab bar customization */
+ion-tab-bar {
+  --background: var(--card);
+  --color: var(--muted-foreground);
+  --color-selected: var(--primary);
+  border-top: 1px solid var(--border);
+}
+
+/* Input customization */
+ion-input {
+  --background: var(--input-background);
+  --color: var(--foreground);
+  --border-color: var(--border);
+}
+
+/* Modal customization */
+ion-modal {
+  --background: var(--popover);
+  --color: var(--popover-foreground);
+}
+
+/* Toast customization */
+ion-toast {
+  --background: var(--card);
+  --color: var(--card-foreground);
+  --border-color: var(--border);
+}
+
+/* Dark mode overrides for better contrast */
+.dark ion-toolbar {
+  --background: var(--primary);
+  --color: var(--primary-foreground);
+}
+
+.dark ion-content {
+  --background: var(--background);
+  --color: var(--foreground);
+}

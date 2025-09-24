@@ -1,0 +1,248 @@
+/* Womxi Theme - CSS personalizado para Ionic */
+
+:root {
+  --font-size: 14px;
+  --background: #fdf7f8;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #d946a6;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: #f3e8ff;
+  --secondary-foreground: #7c2d92;
+  --muted: #f8f4f5;
+  --muted-foreground: #8b7a7e;
+  --accent: #fce7f3;
+  --accent-foreground: #a21f5a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(217, 70, 166, 0.15);
+  --input: transparent;
+  --input-background: #fef7f7;
+  --switch-background: #e5c5d6;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #d946a6;
+  --chart-1: #d946a6;
+  --chart-2: #a855f7;
+  --chart-3: #06b6d4;
+  --chart-4: #84cc16;
+  --chart-5: #f59e0b;
+  --radius: 0.875rem;
+  --sidebar: #fdf2f8;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #d946a6;
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: #fce7f3;
+  --sidebar-accent-foreground: #a21f5a;
+  --sidebar-border: rgba(217, 70, 166, 0.2);
+  --sidebar-ring: #d946a6;
+  
+  /* Womxi specific colors */
+  --womxi-pink-50: #fdf2f8;
+  --womxi-pink-100: #fce7f3;
+  --womxi-pink-200: #fbcfe8;
+  --womxi-pink-300: #f9a8d4;
+  --womxi-pink-400: #f472b6;
+  --womxi-pink-500: #ec4899;
+  --womxi-pink-600: #db2777;
+  --womxi-pink-700: #be185d;
+  --womxi-pink-800: #9d174d;
+  --womxi-pink-900: #831843;
+  
+  --womxi-purple-50: #faf5ff;
+  --womxi-purple-100: #f3e8ff;
+  --womxi-purple-200: #e9d5ff;
+  --womxi-purple-300: #d8b4fe;
+  --womxi-purple-400: #c084fc;
+  --womxi-purple-500: #a855f7;
+  --womxi-purple-600: #9333ea;
+  --womxi-purple-700: #7c2d92;
+  
+  --womxi-blue-50: #eff6ff;
+  --womxi-blue-100: #dbeafe;
+  --womxi-blue-200: #bfdbfe;
+  --womxi-blue-300: #93c5fd;
+  --womxi-blue-400: #60a5fa;
+  --womxi-blue-500: #3b82f6;
+  
+  --womxi-emergency: #ef4444;
+  --womxi-safe: #10b981;
+  --womxi-warning: #f59e0b;
+}
+
+.dark {
+  --background: #0f0a0b;
+  --foreground: #fdf2f8;
+  --card: #1a0e11;
+  --card-foreground: #fdf2f8;
+  --popover: #1a0e11;
+  --popover-foreground: #fdf2f8;
+  --primary: #f472b6;
+  --primary-foreground: #0f0a0b;
+  --secondary: #2d1b3d;
+  --secondary-foreground: #fdf2f8;
+  --muted: #2d1b3d;
+  --muted-foreground: #a8a29e;
+  --accent: #2d1b3d;
+  --accent-foreground: #fdf2f8;
+  --destructive: #ef4444;
+  --destructive-foreground: #fdf2f8;
+  --border: rgba(244, 114, 182, 0.2);
+  --input: #2d1b3d;
+  --ring: #f472b6;
+  --sidebar: #1a0e11;
+  --sidebar-foreground: #fdf2f8;
+  --sidebar-primary: #f472b6;
+  --sidebar-primary-foreground: #0f0a0b;
+  --sidebar-accent: #2d1b3d;
+  --sidebar-accent-foreground: #fdf2f8;
+  --sidebar-border: rgba(244, 114, 182, 0.2);
+  --sidebar-ring: #f472b6;
+}
+
+/* Womxi utility classes */
+.womxi-bg-primary {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.womxi-bg-secondary {
+  background-color: var(--secondary) !important;
+  color: var(--secondary-foreground) !important;
+}
+
+.womxi-bg-card {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+}
+
+.womxi-text-primary {
+  color: var(--primary) !important;
+}
+
+.womxi-text-secondary {
+  color: var(--secondary-foreground) !important;
+}
+
+.womxi-border {
+  border: 1px solid var(--border) !important;
+}
+
+.womxi-rounded {
+  border-radius: var(--radius) !important;
+}
+
+/* Emergency status colors */
+.womxi-emergency {
+  background-color: var(--womxi-emergency) !important;
+  color: white !important;
+}
+
+.womxi-safe {
+  background-color: var(--womxi-safe) !important;
+  color: white !important;
+}
+
+.womxi-warning {
+  background-color: var(--womxi-warning) !important;
+  color: white !important;
+}
+
+/* Base styles */
+html {
+  font-size: var(--font-size);
+  background-color: var(--background);
+}
+
+body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+#root {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+}
+
+/* Ionic overrides */
+ion-app {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+ion-content {
+  --background: var(--background) !important;
+  --color: var(--foreground) !important;
+}
+
+/* Typography */
+h1 {
+  font-size: 2rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+h3 {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+p {
+  font-size: 1rem;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+label {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+button {
+  font-size: 1rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+input {
+  font-size: 1rem;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
