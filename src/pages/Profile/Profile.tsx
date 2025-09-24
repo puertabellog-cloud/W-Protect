@@ -31,12 +31,14 @@ const Profile: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getProfile(deviceId);
+                const rawData = await getProfile(deviceId);
+                // Si rawData es null/undefined, lo reemplazamos por {}
+                const data = rawData ?? {};
                 setForm({
-                    name: data.name || '',
-                    phone: data.phone || '',
-                    email: data.email || '',
-                    mensaje: data.mensaje || '',
+                    name:    data.name    ?? '',
+                    phone:   data.phone   ?? '',
+                    email:   data.email   ?? '',
+                    mensaje: data.mensaje ?? '',
                     deviceId: deviceId
                 });
             } catch (err) {

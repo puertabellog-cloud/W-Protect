@@ -2,10 +2,10 @@ const API_BASE_URL = 'https://oikoom.azurewebsites.net/oikoom/api/w';
 // const API_BASE_URL = 'http://localhost:8080/oikoom/api/w';
 
 export interface ProfileData {
-  name: string;
-  phone: string;
-  email: string;
-  mensaje: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  mensaje: string | null;
   deviceId: string | null;
   active: boolean;
   // Agrega más campos según tu modelo
