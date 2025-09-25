@@ -52,6 +52,7 @@ const HistoriaIndividual: React.FC = () => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -138,8 +139,16 @@ const HistoriaIndividual: React.FC = () => {
   };
 
   const handleLikeComment = async (commentId: string) => {
+    // Prevenir múltiples likes al mismo comentario
+    if (likedComments.has(commentId)) return;
+    
     try {
       await forumService.likeComment(commentId);
+      
+      // Agregar el comentario a la lista de likes
+      setLikedComments(prev => new Set([...prev, commentId]));
+      
+      // Actualizar el contador de likes en la UI
       setComments(prev =>
         prev.map(comment =>
           comment.id === commentId
@@ -175,12 +184,21 @@ const HistoriaIndividual: React.FC = () => {
   };
 
   const getInitials = (name: string): string => {
-    if (!name) return '?';
-    const words = name.split(' ');
+    if (!name || name.trim() === '') return '👤';
+    
+    const cleanName = name.trim();
+    const words = cleanName.split(' ').filter(word => word.length > 0);
+    
+    if (words.length === 0) return '👤';
     if (words.length === 1) {
       return words[0].charAt(0).toUpperCase();
     }
-    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+    
+    // Tomar primera letra del primer nombre y primera letra del último apellido
+    const firstInitial = words[0].charAt(0).toUpperCase();
+    const lastInitial = words[words.length - 1].charAt(0).toUpperCase();
+    
+    return firstInitial + lastInitial;
   };
 
   const getCategoryInfo = (categoryId: string) => {
@@ -439,9 +457,13 @@ const HistoriaIndividual: React.FC = () => {
                         fill="clear" 
                         size="small"
                         onClick={() => handleLikeComment(comment.id)}
-                        className="comment-like-button"
+                        className={`comment-like-button ${likedComments.has(comment.id) ? 'liked' : ''}`}
+                        disabled={likedComments.has(comment.id)}
                       >
-                        <IonIcon icon={heartOutline} slot="start" />
+                        <IonIcon 
+                          icon={likedComments.has(comment.id) ? heart : heartOutline} 
+                          slot="start" 
+                        />
                         {comment.likes}
                       </IonButton>
                     </div>

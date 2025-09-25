@@ -18,11 +18,34 @@ const MapWidget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [address, setAddress] = useState<string>('');
-  const [userName] = useState('Gabriela'); // Puedes obtener esto del contexto de usuario
+  const [userName, setUserName] = useState<string>('Usuario');
 
   useEffect(() => {
+    loadUserName();
     loadGoogleMaps();
   }, []);
+
+  const loadUserName = () => {
+    try {
+      // Buscar el nombre del usuario en localStorage
+      let userData = localStorage.getItem('w-protect-user');
+      if (!userData) {
+        userData = localStorage.getItem('wprotect_registration');
+      }
+      
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user.name) {
+          // Tomar solo el primer nombre
+          const firstName = user.name.trim().split(' ')[0];
+          setUserName(firstName);
+        }
+      }
+    } catch (error) {
+      console.log('No se pudo cargar el nombre del usuario:', error);
+      setUserName('Usuario');
+    }
+  };
 
   const loadGoogleMapsScript = (): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -70,7 +93,7 @@ const MapWidget: React.FC = () => {
   };
 
   const getCurrentLocation = (): Promise<void> => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       if (!navigator.geolocation) {
         const defaultLocation = { lat: 4.6097, lng: -74.0817 };
         setCurrentLocation(defaultLocation);
@@ -80,18 +103,59 @@ const MapWidget: React.FC = () => {
         return;
       }
 
+      // Verificar y solicitar permisos explícitamente
+      try {
+        if ('permissions' in navigator) {
+          const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+          console.log('Estado del permiso de geolocalización:', permission.state);
+          
+          if (permission.state === 'denied') {
+            setError('Permisos de ubicación denegados. Ve a Configuración de la app y habilita la ubicación.');
+            const defaultLocation = { lat: 4.6097, lng: -74.0817 };
+            setCurrentLocation(defaultLocation);
+            setAddress('Bogotá, Colombia (ubicación aproximada - sin permisos)');
+            initMap(defaultLocation);
+            resolve();
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('API de permisos no disponible, continuando con geolocalización directa');
+      }
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log('✅ Ubicación obtenida:', position.coords);
           const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
           setCurrentLocation(location);
+          setError(null); // Limpiar errores
           initMap(location);
           getAddressFromCoordinates(location);
           resolve();
         },
-        () => {
+        (error) => {
+          console.error('❌ Error obteniendo ubicación:', error);
+          let errorMessage = '';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = '🔒 Permisos de ubicación denegados. Habilita la ubicación en Configuración > Privacidad > Ubicación.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = '📍 No se pudo determinar tu ubicación. Verifica que el GPS esté activado.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = '⏱️ Tiempo de espera agotado al obtener ubicación.';
+              break;
+            default:
+              errorMessage = '❌ Error obteniendo ubicación. Verifica permisos y conexión GPS.';
+              break;
+          }
+          
+          setError(errorMessage);
           const defaultLocation = { lat: 4.6097, lng: -74.0817 };
           setCurrentLocation(defaultLocation);
           setAddress('Bogotá, Colombia (ubicación aproximada)');
@@ -100,7 +164,7 @@ const MapWidget: React.FC = () => {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000,
           maximumAge: 60000
         }
       );
@@ -164,6 +228,36 @@ const MapWidget: React.FC = () => {
     }
   };
 
+  const requestLocationPermission = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Forzar solicitud de ubicación para activar el diálogo de permisos
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0 // Forzar nueva solicitud
+        });
+      });
+      
+      const location = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+      setCurrentLocation(location);
+      initMap(location);
+      getAddressFromCoordinates(location);
+      setLoading(false);
+      
+    } catch (error: any) {
+      console.error('Error solicitando permisos:', error);
+      setError('Para usar esta función, necesitas habilitar los permisos de ubicación en la configuración de tu dispositivo.');
+      setLoading(false);
+    }
+  };
+
   const refreshLocation = () => {
     setLoading(true);
     setError(null);
@@ -171,9 +265,23 @@ const MapWidget: React.FC = () => {
   };
 
   const shareLocation = () => {
-    // Por ahora solo un placeholder
-    console.log('Compartir ubicación:', currentLocation);
-    // Aquí implementarás la funcionalidad de compartir más tarde
+    if (!currentLocation) return;
+    
+    const shareText = `Mi ubicación: https://maps.google.com/?q=${currentLocation.lat},${currentLocation.lng}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Mi Ubicación',
+        text: shareText,
+      }).catch(err => console.log('Error compartiendo:', err));
+    } else {
+      // Fallback: copiar al portapapeles
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText)
+          .then(() => alert('Ubicación copiada al portapapeles'))
+          .catch(() => console.log('Error copiando'));
+      }
+    }
   };
 
   return (
@@ -199,10 +307,16 @@ const MapWidget: React.FC = () => {
               <IonText color="danger">
                 <p>{error}</p>
               </IonText>
-              <IonButton fill="outline" size="small" onClick={refreshLocation}>
-                <IonIcon icon={refreshOutline} slot="start" />
-                Reintentar
-              </IonButton>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <IonButton fill="solid" size="small" onClick={requestLocationPermission}>
+                  <IonIcon icon={locationOutline} slot="start" />
+                  Habilitar Ubicación
+                </IonButton>
+                <IonButton fill="outline" size="small" onClick={refreshLocation}>
+                  <IonIcon icon={refreshOutline} slot="start" />
+                  Reintentar
+                </IonButton>
+              </div>
             </div>
           )}
           
@@ -217,7 +331,7 @@ const MapWidget: React.FC = () => {
           <div className="location-info-widget">
             <div className="user-location-text">
               <IonText>
-                <h3>¡Hola {userName}!</h3>
+                <h3>¡Hola, {userName}!</h3>
                 <p>Te encuentras en:</p>
                 <p><strong>{address}</strong></p>
               </IonText>

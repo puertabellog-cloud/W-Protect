@@ -132,12 +132,21 @@ const Foro: React.FC = () => {
   };
 
   const getInitials = (name: string): string => {
-    if (!name) return '?';
-    const words = name.split(' ');
+    if (!name || name.trim() === '') return '👤';
+    
+    const cleanName = name.trim();
+    const words = cleanName.split(' ').filter(word => word.length > 0);
+    
+    if (words.length === 0) return '👤';
     if (words.length === 1) {
       return words[0].charAt(0).toUpperCase();
     }
-    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+    
+    // Tomar primera letra del primer nombre y primera letra del último apellido
+    const firstInitial = words[0].charAt(0).toUpperCase();
+    const lastInitial = words[words.length - 1].charAt(0).toUpperCase();
+    
+    return firstInitial + lastInitial;
   };
 
   const truncateContent = (content: string, maxLength: number = 150): string => {

@@ -99,19 +99,25 @@
   width: 44px;
   height: 44px;
   min-width: 44px;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .user-avatar {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: var(--womxi-gradient-primary);
+  background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 64, 129, 0.3);
 }
 
 .author-details {
@@ -322,16 +328,60 @@
   
   .story-card {
     margin-bottom: 12px;
+    border-radius: 12px;
   }
   
   .story-header {
-    flex-direction: column;
+    /* Mantener horizontal en móvil pero ajustar espacios */
+    display: flex;
     align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
     gap: 8px;
   }
   
+  .author-info {
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .author-avatar {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+  
+  .user-avatar {
+    font-size: 14px;
+  }
+  
+  .author-details {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .author-name {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .story-date {
+    font-size: 0.75rem;
+  }
+  
   .category-chip {
-    align-self: flex-start;
+    font-size: 0.7rem;
+    height: 24px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  
+  .story-title {
+    font-size: 1.1rem;
+    line-height: 1.2;
   }
   
   .empty-state {

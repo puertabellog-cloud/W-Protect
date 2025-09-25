@@ -63,19 +63,25 @@
   width: 48px;
   height: 48px;
   min-width: 48px;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
 .main-story-card .user-avatar {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: var(--womxi-gradient-primary);
+  background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 18px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 64, 129, 0.3);
 }
 
 .main-story-card .author-details {
@@ -285,10 +291,25 @@
   width: 36px;
   height: 36px;
   min-width: 36px;
+  border-radius: 50%;
+  overflow: hidden;
 }
 
-.user-avatar.small {
+.comment-avatar .user-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
   font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 64, 129, 0.3);
 }
 
 .comment-meta {
@@ -336,6 +357,14 @@
 
 .comment-like-button ion-icon {
   font-size: 16px;
+}
+
+.comment-like-button.liked {
+  --color: #e74c3c;
+}
+
+.comment-like-button.liked ion-icon {
+  color: #e74c3c;
 }
 
 .no-comments {
@@ -421,13 +450,41 @@
   }
   
   .main-story-card .story-header {
-    flex-direction: column;
+    /* Mantener horizontal pero ajustar espacios */
+    display: flex;
     align-items: flex-start;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  
+  .main-story-card .author-info {
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .main-story-card .author-avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+  
+  .main-story-card .user-avatar {
+    font-size: 16px;
+  }
+  
+  .main-story-card .author-name {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .main-story-card .category-chip {
-    align-self: flex-start;
+    font-size: 0.7rem;
+    height: 24px;
+    border-radius: 12px;
+    flex-shrink: 0;
   }
 }
 

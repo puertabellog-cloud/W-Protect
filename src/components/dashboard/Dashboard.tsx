@@ -43,7 +43,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     {
       id: 'resources',
       title: 'Recursos',
-      description: 'Información y ayuda disponible',
+      description: 'Biblioteca de seguridad y artículos',
       icon: bookOutline,
       color: '#ec4899'
     }
@@ -75,6 +75,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
       font-size: 1.3rem;
       font-weight: 700;
       margin-bottom: 4px;
+    }
+    
+    .welcome-author {
+      color: #9ca3af;
+      font-size: 0.8rem;
+      font-weight: 300;
+      font-style: italic;
+      margin: 0 0 12px 0;
+      letter-spacing: 0.5px;
     }
     
     .welcome-subtitle {
@@ -215,6 +224,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="welcome-section">
           <IonIcon icon={shieldCheckmarkOutline} className="welcome-icon" />
           <h2 className="welcome-title">Bienvenida a W-Protect</h2>
+          <p className="welcome-author">by Gabriela Puerta</p>
           <p className="welcome-subtitle">
             Tu seguridad es nuestra prioridad. Accede a todas las herramientas de protección.
           </p>

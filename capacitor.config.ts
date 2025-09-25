@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     Geolocation: {
-      permissions: ['location']
+      permissions: ['location', 'coarseLocation'],
+      enableHighAccuracy: true
     }
   }
 };

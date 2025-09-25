@@ -6,13 +6,15 @@ import { Dashboard } from '../../components/dashboard/Dashboard';
 import { EmergencyAlert } from '../../components/dashboard/EmergencyAlert';
 import { ComingSoonScreen } from '../../components/dashboard/ComingSoonScreen';
 import LocationScreen from '../../components/screens/LocationScreen';
+import { Resources, ArticleReader } from '../Resources';
 import { useHistory } from 'react-router-dom';
 
-type AppScreen = 'dashboard' | 'emergency' | 'location' | 'experiencias' | 'resources';
+type AppScreen = 'dashboard' | 'emergency' | 'location' | 'experiencias' | 'resources' | 'article-reader';
 
 const Home: React.FC = () => {
     const [currentScreen, setCurrentScreen] = useState<AppScreen>('dashboard');
     const [isDark, setIsDark] = useState(false);
+    const [selectedArticleId, setSelectedArticleId] = useState<string>('');
     const history = useHistory();
 
     const toggleDarkMode = () => {
@@ -40,6 +42,15 @@ const Home: React.FC = () => {
         setCurrentScreen('dashboard');
     };
 
+    const handleArticleSelect = (articleId: string) => {
+        setSelectedArticleId(articleId);
+        setCurrentScreen('article-reader');
+    };
+
+    const handleBackToResources = () => {
+        setCurrentScreen('resources');
+    };
+
     const renderScreen = () => {
         switch (currentScreen) {
             case 'emergency':
@@ -50,7 +61,9 @@ const Home: React.FC = () => {
                 // Este caso no debería ejecutarse ya que navegamos directamente al foro
                 return <ComingSoonScreen feature="Experiencias" onBack={handleBackToDashboard} />;
             case 'resources':
-                return <ComingSoonScreen feature="Recursos de Ayuda" onBack={handleBackToDashboard} />;
+                return <Resources onArticleSelect={handleArticleSelect} onBack={handleBackToDashboard} />;
+            case 'article-reader':
+                return <ArticleReader articleId={selectedArticleId} onBack={handleBackToResources} />;
             default:
                 return <Dashboard onFeatureSelect={handleFeatureSelect} />;
         }
