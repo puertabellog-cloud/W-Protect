@@ -12,9 +12,9 @@ import {
 import { IonReactRouter } from '@ionic/react-router';
 import { home, peopleOutline, personOutline } from 'ionicons/icons';
 
-import Home from './pages/Home/Home';
 import Contacts from './pages/Contacts/Contacts';
 import Profile from './pages/Profile/Profile';
+import { AuthWrapper } from './components/AuthWrapper';
 
 /* Los estilos de Ionic ya están importados en main.tsx */
 
@@ -26,38 +26,42 @@ setupIonicReact();
 const App: React.FC = () => (
   <IonApp>
     <DeviceProvider>
-    <IonReactRouter>
-      <IonTabs>
-        <IonRouterOutlet>
-          <Route exact path="/home" component={Home} />
-          <Route exact path="/contacts" component={Contacts} />
-          <Route exact path="/profile" component={Profile} />
-          <Route exact path="/">
-            <Home />
-          </Route>
-          <Route exact path="/contacts">
-            <Contacts />
-          </Route>
-          <Route exact path="/profile">
-            <Profile />
-          </Route>
-        </IonRouterOutlet>
-        <IonTabBar slot="bottom">
-          <IonTabButton tab="home" href="/home">
-            <IonIcon aria-hidden="true" icon={home} />
-            <IonLabel>Inicio</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="contacts" href="/contacts">
-            <IonIcon aria-hidden="true" icon={peopleOutline} />
-            <IonLabel>Contactos</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="profile" href="/profile">
-            <IonIcon aria-hidden="true" icon={personOutline} />
-            <IonLabel>Mi Perfil</IonLabel>
-          </IonTabButton>
-        </IonTabBar>
-      </IonTabs>
-    </IonReactRouter>
+      <IonReactRouter>
+        <IonTabs>
+          <IonRouterOutlet>
+            <Route exact path="/home">
+              <AuthWrapper />
+            </Route>
+            <Route exact path="/contacts">
+              <AuthWrapper>
+                <Contacts />
+              </AuthWrapper>
+            </Route>
+            <Route exact path="/profile">
+              <AuthWrapper>
+                <Profile />
+              </AuthWrapper>
+            </Route>
+            <Route exact path="/">
+              <AuthWrapper />
+            </Route>
+          </IonRouterOutlet>
+          <IonTabBar slot="bottom">
+            <IonTabButton tab="home" href="/home">
+              <IonIcon aria-hidden="true" icon={home} />
+              <IonLabel>Inicio</IonLabel>
+            </IonTabButton>
+            <IonTabButton tab="contacts" href="/contacts">
+              <IonIcon aria-hidden="true" icon={peopleOutline} />
+              <IonLabel>Contactos</IonLabel>
+            </IonTabButton>
+            <IonTabButton tab="profile" href="/profile">
+              <IonIcon aria-hidden="true" icon={personOutline} />
+              <IonLabel>Mi Perfil</IonLabel>
+            </IonTabButton>
+          </IonTabBar>
+        </IonTabs>
+      </IonReactRouter>
     </DeviceProvider>
   </IonApp>
 );
