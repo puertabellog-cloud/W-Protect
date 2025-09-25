@@ -52,27 +52,9 @@ class BackendService {
         }
     }
 
-    // Agregar un contacto de emergencia
-    // async addEmergencyContact(userId: number, contact: Omit<EmergencyContact, 'id' | 'userId'>): Promise<EmergencyContact> {
-    //     try {
-    //         const response = await fetch(`${this.baseUrl}/emergency-contacts`, {
-    //             method: 'POST',
-    //             headers: this.getHeaders(),
-    //             body: JSON.stringify({
-    //                 ...contact,
-    //                 userId
-    //             }),
-    //         });
-
-    //         return await this.handleResponse<EmergencyContact>(response);
-    //     } catch (error) {
-    //         console.error('Error agregando contacto de emergencia:', error);
-    //         throw error;
-    //     }
-    // }
-
     // Actualizar un contacto de emergencia
     async updateEmergencyContact(updates: Partial<EmergencyContact>): Promise<EmergencyContact> {
+        try {
             const response = await fetch(`${this.baseUrl}/contacts/save`, {
                 method: 'PUT',
                 body: JSON.stringify(updates),
@@ -88,7 +70,7 @@ class BackendService {
         }
     }
 
-    // // Eliminar un contacto de emergencia
+    // Eliminar un contacto de emergencia
     async deleteEmergencyContact(contactId: number): Promise<void> {
         try {
             const response = await fetch(`${this.baseUrl}/contacts/delete/${contactId}`, {
