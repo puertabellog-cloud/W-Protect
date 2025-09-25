@@ -1,0 +1,159 @@
+/* Map Widget Styles */
+
+.map-widget-card {
+  margin: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  background: white;
+}
+
+.map-container-widget {
+  position: relative;
+  height: 250px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: #f5f5f5;
+}
+
+.map-widget {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+.map-loading-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--womxi-text-muted);
+}
+
+.map-loading-widget ion-spinner {
+  --color: var(--womxi-primary);
+  margin-bottom: 12px;
+}
+
+.map-error-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.location-info-widget {
+  padding: 16px;
+  background: rgba(255, 64, 129, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 64, 129, 0.1);
+}
+
+.user-location-text h3 {
+  color: var(--womxi-primary);
+  margin: 0 0 8px 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.user-location-text p {
+  margin: 4px 0;
+  color: var(--womxi-text-secondary);
+  line-height: 1.4;
+}
+
+.user-location-text strong {
+  color: var(--womxi-text-primary);
+  font-weight: 600;
+}
+
+.location-coordinates {
+  margin: 12px 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.85rem;
+}
+
+.location-coordinates p {
+  margin: 0;
+  line-height: 1.3;
+}
+
+.location-actions {
+  margin-top: 16px;
+}
+
+.location-actions ion-button {
+  --border-radius: 12px;
+  font-weight: 600;
+}
+
+.location-actions ion-button[expand="block"]:first-child {
+  --background: var(--womxi-gradient-primary);
+  --color: white;
+}
+
+.location-actions ion-button[fill="outline"] {
+  --border-color: var(--womxi-primary);
+  --color: var(--womxi-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .map-widget-card {
+    margin: 12px;
+  }
+  
+  .map-container-widget {
+    height: 200px;
+  }
+  
+  .location-info-widget {
+    padding: 12px;
+  }
+  
+  .user-location-text h3 {
+    font-size: 1rem;
+  }
+}
+
+/* Animations */
+.map-widget-card {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header personalizado */
+.map-widget-card ion-card-header {
+  padding-bottom: 8px;
+}
+
+.map-widget-card ion-card-title {
+  color: var(--womxi-text-primary);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.map-widget-card ion-card-title ion-icon {
+  color: var(--womxi-primary);
+}

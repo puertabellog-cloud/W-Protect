@@ -5,12 +5,15 @@ import { AppHeader } from '../../components/AppHeader';
 import { Dashboard } from '../../components/dashboard/Dashboard';
 import { EmergencyAlert } from '../../components/dashboard/EmergencyAlert';
 import { ComingSoonScreen } from '../../components/dashboard/ComingSoonScreen';
+import LocationScreen from '../../components/screens/LocationScreen';
+import { useHistory } from 'react-router-dom';
 
-type AppScreen = 'dashboard' | 'emergency' | 'location' | 'chat' | 'resources' | 'requests';
+type AppScreen = 'dashboard' | 'emergency' | 'location' | 'experiencias' | 'resources';
 
 const Home: React.FC = () => {
     const [currentScreen, setCurrentScreen] = useState<AppScreen>('dashboard');
     const [isDark, setIsDark] = useState(false);
+    const history = useHistory();
 
     const toggleDarkMode = () => {
         const newMode = !isDark;
@@ -24,7 +27,13 @@ const Home: React.FC = () => {
     };
 
     const handleFeatureSelect = (feature: string) => {
-        setCurrentScreen(feature as AppScreen);
+        if (feature === 'experiencias') {
+            // Navegar al foro de historias
+            history.push('/foro');
+        } else {
+            // Para location y otras features, mostrar en el dashboard
+            setCurrentScreen(feature as AppScreen);
+        }
     };
 
     const handleBackToDashboard = () => {
@@ -36,13 +45,12 @@ const Home: React.FC = () => {
             case 'emergency':
                 return <EmergencyAlert onBack={handleBackToDashboard} />;
             case 'location':
-                return <ComingSoonScreen feature="Localización" onBack={handleBackToDashboard} />;
-            case 'chat':
-                return <ComingSoonScreen feature="Chat Seguro" onBack={handleBackToDashboard} />;
+                return <LocationScreen onBack={handleBackToDashboard} />;
+            case 'experiencias':
+                // Este caso no debería ejecutarse ya que navegamos directamente al foro
+                return <ComingSoonScreen feature="Experiencias" onBack={handleBackToDashboard} />;
             case 'resources':
                 return <ComingSoonScreen feature="Recursos de Ayuda" onBack={handleBackToDashboard} />;
-            case 'requests':
-                return <ComingSoonScreen feature="Solicitudes" onBack={handleBackToDashboard} />;
             default:
                 return <Dashboard onFeatureSelect={handleFeatureSelect} />;
         }

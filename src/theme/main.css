@@ -302,3 +302,20 @@ input {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Variables adicionales para Chat */
+:root {
+  --womxi-bg-chat: #f8f9fa;
+  --womxi-border-light: rgba(0, 0, 0, 0.1);
+  --womxi-text-muted: #6b7280;
+  --womxi-text-primary: #1f2937;
+  --womxi-primary-dark: #be185d;
+}
+
+.dark {
+  --womxi-bg-chat: #1f2937;
+  --womxi-border-light: rgba(255, 255, 255, 0.1);
+  --womxi-text-muted: #9ca3af;
+  --womxi-text-primary: #f9fafb;
+  --womxi-primary-dark: #f472b6;
+}

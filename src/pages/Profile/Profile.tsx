@@ -1,9 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonInput, IonTextarea, IonButton } from '@ionic/react';
+import { useHistory } from 'react-router-dom';
+import { 
+  IonPage, 
+  IonHeader, 
+  IonToolbar, 
+  IonTitle, 
+  IonContent, 
+  IonItem, 
+  IonLabel, 
+  IonInput, 
+  IonTextarea, 
+  IonButton,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonList,
+  IonIcon,
+  IonRefresher,
+  IonRefresherContent
+} from '@ionic/react';
+import { 
+  personOutline
+} from 'ionicons/icons';
 import { updateProfile, getProfile } from '../../api/client';
 import { useDevice } from "../../context/DeviceContext";
+import { forumService } from '../../services/forumService';
 
 const Profile: React.FC = () => {
+    const history = useHistory();
     const [form, setForm] = useState({
         name: '',
         phone: '',
@@ -14,6 +39,7 @@ const Profile: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+
 
     const handleChange = (event: CustomEvent) => {
         const target = event.target as HTMLInputElement;
@@ -88,6 +114,24 @@ const Profile: React.FC = () => {
         fetchProfile();
     }, [deviceId]);
 
+
+
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+
+
+    const doRefresh = async (event: CustomEvent) => {
+        // Refrescar perfil si es necesario
+        event.detail.complete();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -117,25 +161,31 @@ const Profile: React.FC = () => {
                 </IonToolbar>
             </IonHeader>
             <IonContent>
+                <IonRefresher slot="fixed" onIonRefresh={doRefresh}>
+                    <IonRefresherContent />
+                </IonRefresher>
+
+
+
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, marginBottom: 24 }}>
                     <div
                         style={{
                             width: 120,
                             height: 120,
                             borderRadius: '50%',
-                            overflow: 'hidden',
-                            border: '2px solid #ccc',
+                            background: 'linear-gradient(135deg, #ff4081, #ff6ec7)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: '#f4f4f4'
+                            color: 'white',
+                            fontSize: '36px',
+                            fontWeight: 'bold',
+                            fontFamily: 'Poppins, sans-serif',
+                            border: '3px solid white',
+                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
                         }}
                     >
-                        <img
-                            src="https://www.gravatar.com/avatar/?d=mp"
-                            alt="Foto de perfil"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        {form.name ? getInitials(form.name) : '?'}
                     </div>
                 </div>
                 <form style={{ padding: 16 }} onSubmit={handleSubmit}>

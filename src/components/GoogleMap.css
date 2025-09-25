@@ -1,0 +1,81 @@
+/* Google Maps Styles */
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+.map-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Loading overlay */
+.map-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.map-loading ion-spinner {
+  --color: var(--womxi-primary);
+}
+
+/* Location info card */
+.location-info {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.location-info strong {
+  color: var(--womxi-primary);
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .location-info {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 12px;
+    font-size: 13px;
+  }
+}
+
+/* Map controls customization */
+.gm-style-iw {
+  font-family: 'Poppins', sans-serif !important;
+}
+
+.gm-style .gm-style-iw-c {
+  border-radius: 8px !important;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background: var(--womxi-gradient-primary);
+  border: 3px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
