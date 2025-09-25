@@ -24,6 +24,10 @@
 	<true/>
 	<key>NSContactsUsageDescription</key>
 	<string>Esta aplicación necesita acceder a tus contactos para que puedas elegir contactos de emergencia.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>W-Protect necesita acceso a tu ubicación para mostrarte tu posición actual y ayudarte en situaciones de emergencia.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>W-Protect necesita acceso a tu ubicación para mostrarte tu posición actual y ayudarte en situaciones de emergencia.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

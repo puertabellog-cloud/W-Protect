@@ -1,0 +1,401 @@
+/* Nueva Historia Styles */
+
+.nueva-historia-content {
+  --background: var(--womxi-bg-primary);
+}
+
+.story-form-container {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-section {
+  margin-bottom: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: white;
+  overflow: visible;
+}
+
+.form-section ion-card-content {
+  padding: 20px;
+}
+
+.form-item {
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-color: transparent;
+  --background: transparent;
+  margin-bottom: 12px;
+}
+
+.form-item ion-label {
+  color: var(--womxi-text-primary);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.form-item .required {
+  color: var(--womxi-primary);
+  margin-right: 4px;
+}
+
+.form-item ion-input,
+.form-item ion-textarea,
+.form-item ion-select {
+  --background: var(--womxi-bg-secondary);
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.form-item ion-input:focus-within,
+.form-item ion-textarea:focus-within,
+.form-item ion-select:focus-within {
+  --background: white;
+  border-color: var(--womxi-primary);
+  box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
+}
+
+.form-item ion-input.error,
+.form-item ion-textarea.error,
+.form-item ion-select.error {
+  border-color: var(--ion-color-danger);
+  --background: rgba(220, 53, 69, 0.05);
+}
+
+.error-text {
+  display: block;
+  margin-top: 4px;
+  margin-left: 16px;
+  font-size: 0.8rem;
+}
+
+.char-counter {
+  text-align: right;
+  color: var(--womxi-text-muted);
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+.char-counter.warning {
+  color: var(--ion-color-warning);
+}
+
+.char-counter.danger {
+  color: var(--ion-color-danger);
+}
+
+/* Categoría */
+.category-preview {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-chip {
+  --background: var(--womxi-bg-secondary);
+  --color: var(--womxi-text-primary);
+  font-size: 0.85rem;
+  height: 36px;
+  border-radius: 18px;
+  font-weight: 500;
+}
+
+/* Colores por categoría */
+.category-superacion {
+  --background: rgba(139, 69, 19, 0.1);
+  --color: #8b4513;
+}
+
+.category-violencia {
+  --background: rgba(220, 53, 69, 0.1);
+  --color: #dc3545;
+}
+
+.category-trabajo {
+  --background: rgba(40, 167, 69, 0.1);
+  --color: #28a745;
+}
+
+.category-familia {
+  --background: rgba(255, 193, 7, 0.1);
+  --color: #ffc107;
+}
+
+.category-salud {
+  --background: rgba(23, 162, 184, 0.1);
+  --color: #17a2b8;
+}
+
+.category-educacion {
+  --background: rgba(108, 117, 125, 0.1);
+  --color: #6c757d;
+}
+
+.category-otro {
+  --background: rgba(111, 66, 193, 0.1);
+  --color: #6f42c1;
+}
+
+/* Secciones del formulario */
+.section-title {
+  display: block;
+  color: var(--womxi-text-primary);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.section-description {
+  color: var(--womxi-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+/* Tags */
+.tags-input {
+  margin-bottom: 16px;
+}
+
+.tags-input ion-item {
+  --background: var(--womxi-bg-secondary);
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-end: 8px;
+  --border-color: transparent;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag-item {
+  --background: rgba(255, 64, 129, 0.1);
+  --color: var(--womxi-primary);
+  height: 32px;
+  font-size: 0.8rem;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+.tag-item ion-icon {
+  font-size: 16px;
+  margin-left: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.tag-item ion-icon:hover {
+  opacity: 1;
+}
+
+.tags-info {
+  text-align: right;
+  color: var(--womxi-text-muted);
+  font-size: 0.8rem;
+}
+
+/* Checkbox de privacidad */
+.checkbox-item {
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-color: transparent;
+  --background: transparent;
+  align-items: flex-start;
+  padding: 16px 0;
+}
+
+.checkbox-item ion-checkbox {
+  margin-right: 16px;
+  margin-top: 2px;
+  --size: 20px;
+  --checkmark-color: white;
+  --background-checked: var(--womxi-primary);
+  --border-color-checked: var(--womxi-primary);
+}
+
+.checkbox-label {
+  flex: 1;
+}
+
+.checkbox-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--womxi-text-primary);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.checkbox-title ion-icon {
+  font-size: 18px;
+  color: var(--womxi-primary);
+}
+
+.checkbox-description {
+  color: var(--womxi-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Botones de acción */
+.action-buttons {
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.submit-button {
+  --border-radius: 16px;
+  --padding-start: 24px;
+  --padding-end: 24px;
+  height: 52px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  background: var(--womxi-gradient-primary);
+  box-shadow: 0 4px 16px rgba(255, 64, 129, 0.3);
+}
+
+.submit-button:not(.button-disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 64, 129, 0.4);
+}
+
+.cancel-button {
+  --border-radius: 16px;
+  --color: var(--womxi-text-muted);
+  height: 44px;
+  font-weight: 500;
+}
+
+.cancel-button:hover {
+  --color: var(--womxi-text-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .story-form-container {
+    padding: 12px;
+  }
+  
+  .form-section {
+    margin-bottom: 12px;
+  }
+  
+  .form-section ion-card-content {
+    padding: 16px;
+  }
+  
+  .action-buttons {
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .submit-button {
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* Estados de carga */
+.submit-button.button-disabled {
+  opacity: 0.6;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(255, 64, 129, 0.2) !important;
+}
+
+/* Animaciones */
+.form-section {
+  animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tag-item {
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Toast personalizado */
+.toast-success {
+  --background: var(--ion-color-success);
+}
+
+.toast-error {
+  --background: var(--ion-color-danger);
+}
+
+/* Header personalizado */
+ion-header ion-toolbar {
+  --background: white;
+  --color: var(--womxi-text-primary);
+  --border-color: rgba(0, 0, 0, 0.1);
+}
+
+ion-header ion-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: var(--womxi-text-primary);
+}
+
+ion-header ion-button {
+  --color: var(--womxi-primary);
+}
+
+/* Mejoras de accesibilidad */
+.form-item ion-input:focus,
+.form-item ion-textarea:focus,
+.form-item ion-select:focus {
+  outline: 2px solid var(--womxi-primary);
+  outline-offset: 2px;
+}
+
+/* Estados hover en desktop */
+@media (hover: hover) {
+  .tag-item:hover {
+    --background: rgba(255, 64, 129, 0.15);
+    transform: scale(1.05);
+  }
+  
+  .category-chip:hover {
+    transform: scale(1.02);
+  }
+  
+  .form-item ion-input:hover,
+  .form-item ion-textarea:hover,
+  .form-item ion-select:hover {
+    --background: rgba(255, 255, 255, 0.8);
+  }
+}

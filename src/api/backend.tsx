@@ -30,14 +30,16 @@ class BackendService {
         }
 
         const text = await response.text();
-        return text ? JSON.parse(text) : null;
+        if (!text) {
+            throw new Error('No se recibió respuesta del servidor');
+        }
+        return JSON.parse(text) as T;
     }
 
     // === GESTIÓN DE CONTACTOS DE EMERGENCIA ===
 
     // Obtener contactos de emergencia del usuario
     async getEmergencyContacts(userId: number): Promise<EmergencyContact[]> {
-        console.log(`${this.baseUrl}/contacts/user/${userId}`);
         try {
             const response = await fetch(`${this.baseUrl}/contacts/user/${userId}`, {
                 method: 'GET',
@@ -71,9 +73,6 @@ class BackendService {
 
     // Actualizar un contacto de emergencia
     async updateEmergencyContact(updates: Partial<EmergencyContact>): Promise<EmergencyContact> {
-        console.log("Actualizando contacto de emergencia con datos:", JSON.stringify(updates));
-        console.log(updates);
-        try {
             const response = await fetch(`${this.baseUrl}/contacts/save`, {
                 method: 'PUT',
                 body: JSON.stringify(updates),
@@ -159,9 +158,7 @@ class BackendService {
 
 
     // Obtener información del usuario actual
-    async getProfile(deviceId: string ): Promise<ProfileData> {
-        console.log("Obteniendo perfil para deviceId:", deviceId);
-        console.log(`${this.baseUrl}/users/device/${deviceId}`);
+    async getProfile(deviceId: string): Promise<ProfileData> {
         try {
             const response = await fetch(`${this.baseUrl}/users/device/${deviceId}`, {
                 method: 'GET',
