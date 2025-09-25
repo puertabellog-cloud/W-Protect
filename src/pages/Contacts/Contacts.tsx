@@ -14,6 +14,9 @@ import {
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
 import { getInitials } from '../../utils/avatarUtils';
+import { backendService } from '../../api/backend';
+import { EmergencyContact, ContactFromDevice, ProfileData } from '../../api/interface';
+import { useDevice } from "../../context/DeviceContext";
 
 // Configuración simplificada para mejor compatibilidad
 const projection = {
@@ -21,36 +24,253 @@ const projection = {
   phones: true
 };
 
-interface EmergencyContact {
-  name: string;
-  phone: string;
-  alias?: string;
-}
-
 const ContactsPage: React.FC = () => {
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
-  const [allContacts, setAllContacts] = useState<any[]>([]);
-  const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
+  const [allContacts, setAllContacts] = useState<ContactFromDevice[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<ContactFromDevice[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string>("");
+  const [toastColor, setToastColor] = useState<'success' | 'danger' | 'warning'>('success');
   const [editContactIndex, setEditContactIndex] = useState<number | null>(null);
+  const [deleteContactIndex, setDeleteContactIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // Estado que indica si ya terminamos de cargar el perfil
+  const [profileReady, setProfileReady] = useState(false);
 
-  // Cargar contactos de emergencia desde localStorage al inicio
+  /* ----- NUEVO ESTADO PARA EL USER ID ----- */
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  /* ----- CONTEXTO DEL DISPOSITIVO (para obtener deviceId) ----- */
+  const { deviceId } = useDevice();  
+  /* --------------------------------------------------------------
+     1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
+     -------------------------------------------------------------- */
   useEffect(() => {
-    const savedContacts = localStorage.getItem('emergencyContacts');
-    if (savedContacts) {
-      setEmergencyContacts(JSON.parse(savedContacts));
-    }
+    // Si no tienes todavía un deviceId, no intentes la llamada.
+    if (!deviceId) return;
+
+    const fetchCurrentUser = async () => {
+      try {
+        // Llamada al backend (el método devuelve ProfileData)
+        const profile: ProfileData = await backendService.getProfile(deviceId);
+        console.log("Perfil obtenido:", profile);
+        // Supongamos que el id del usuario está en profile.id (ajusta si tu campo tiene otro nombre)
+        if (profile && typeof profile.id === 'number') {
+          setCurrentUserId(profile.id);
+          setProfileReady(true);
+
+        } else {
+          console.warn('El perfil recibido no contiene un id numérico', profile);
+        }
+      } catch (err) {
+        console.error('No se pudo obtener el perfil del usuario', err);
+        // Opcional: muestra un toast o alerta para que el usuario sepa que algo falló
+      }
+    };
+
+    fetchCurrentUser();
+  }, [deviceId]);   // Se vuelve a ejecutar sólo si cambia el deviceId
+
+
+  // Monitorear estado de conexión
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // Guardar contactos en localStorage cada vez que cambien
   useEffect(() => {
-    localStorage.setItem('emergencyContacts', JSON.stringify(emergencyContacts));
-  }, [emergencyContacts]);
+  // Esperamos a que el perfil se haya intentado cargar
+  if (!profileReady) return;
 
-  // === Obtener todos los contactos ===
+  // Si no conseguimos un id, podemos abortar o usar un fallback
+  if (currentUserId === null) {
+    console.warn('⚠️ No hay userId disponible; los contactos no se cargarán.');
+    // Opcional: mostrar toast informativo al usuario
+    showToast('No se pudo identificar al usuario. Los contactos locales estarán disponibles.', 'warning');
+    // Podemos aun cargar los contactos locales (offline) aquí si queremos
+    loadEmergencyContacts();   // <-- llamamos a la función que ya tienes
+    return;
+  }
+
+  // Con id válido, cargamos los contactos del servidor (o local si offline)
+  loadEmergencyContacts();
+}, [profileReady, currentUserId]); 
+
+  // === FUNCIONES DE BACKEND ===
+
+  const loadEmergencyContacts = async () => {
+    if (!isOnline) {
+      // Si no hay conexión, cargar desde localStorage
+      const savedContacts = localStorage.getItem('emergencyContacts');
+      if (savedContacts) {
+        setEmergencyContacts(JSON.parse(savedContacts));
+      }
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const contacts = await backendService.getEmergencyContacts(currentUserId);
+      setEmergencyContacts(contacts);
+      
+      // Guardar en localStorage como backup
+      localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+      
+    } catch (error) {
+      console.error('Error cargando contactos:', error);
+      showToast('Error cargando contactos del servidor: ' + error, 'danger');
+      
+      // Cargar desde localStorage como fallback
+      const savedContacts = localStorage.getItem('emergencyContacts');
+      if (savedContacts) {
+        setEmergencyContacts(JSON.parse(savedContacts));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveContactToBackend = async (contactData: Omit<EmergencyContact, 'id' | 'userId'>) => {
+    console.log("Intentando guardar contacto:", contactData);
+    console.log("Estado actual de userId:", currentUserId);
+    if (currentUserId === null) {
+      console.warn('Intentando guardar contacto antes de conocer el userId');
+      return;
+    }
+    if (!isOnline) {
+      // Si no hay conexión, solo guardar localmente
+      const newContact: EmergencyContact = {
+        id: Date.now(), // ID temporal
+        ...contactData,
+        userId: currentUserId
+      };
+      
+      const updated = [...emergencyContacts, newContact];
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      
+      showToast('Contacto guardado localmente. Se sincronizará cuando haya conexión.', 'warning');
+      return;
+    }
+
+    try {
+      console.log("Guardando contacto...");
+      
+      // Crear el objeto completo para enviar al backend
+      const contactToSave: EmergencyContact = {
+        ...contactData,
+        userId: currentUserId
+        // No incluir 'id' para que el backend sepa que es un nuevo contacto
+      };
+      let ave = JSON.stringify(contactToSave);
+      console.log("Datos a enviar:", ave);
+      
+      const savedContact = await backendService.updateEmergencyContact(contactToSave);
+      const updated = [...emergencyContacts, savedContact];
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
+      showToast(`Contacto agregado: ${contactData.name}`, 'success');
+    } catch (error) {
+      console.error('Error guardando contacto:', error);
+      showToast('Error al guardar contacto en el servidor: ' + error, 'danger');
+    }
+  };
+
+  const updateContactInBackend = async (contactId: number, updates: Partial<EmergencyContact>) => {
+    if (!isOnline) {
+      // Actualizar solo localmente
+      const updated = emergencyContacts.map(c => 
+        c.id === contactId ? { ...c, ...updates } : c
+      );
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      
+      showToast('Cambios guardados localmente', 'warning');
+      return;
+    }
+
+    try {
+      // Buscar el contacto completo y actualizarlo
+      const originalContact = emergencyContacts.find(c => c.id === contactId);
+      if (!originalContact) {
+        throw new Error('Contacto no encontrado');
+      }
+
+      const updatedContactData: EmergencyContact = {
+        ...originalContact,
+        ...updates
+      };
+
+      console.log("Actualizando contacto:", updatedContactData);
+
+      const updatedContact = await backendService.updateEmergencyContact(updatedContactData);
+      const updated = emergencyContacts.map(c => 
+        c.id === contactId ? updatedContact : c
+      );
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
+      showToast('Contacto actualizado', 'success');
+    } catch (error) {
+      console.error('Error actualizando contacto:', error);
+      showToast('Error al actualizar contacto: ' + error, 'danger');
+    }
+  };
+
+  const deleteContactFromBackend = async (contactId: number) => {
+    if (!isOnline) {
+      // Eliminar solo localmente
+      const updated = emergencyContacts.filter(c => c.id !== contactId);
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      
+      showToast('Contacto eliminado localmente', 'warning');
+      return;
+    }
+
+    try {
+      await backendService.deleteEmergencyContact(contactId);
+      const updated = emergencyContacts.filter(c => c.id !== contactId);
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
+      showToast('Contacto eliminado', 'success');
+    } catch (error) {
+      console.error('Error eliminando contacto:', error);
+      showToast('Error al eliminar contacto: ' + error, 'danger');
+    }
+  };
+
+  // === FUNCIONES DE UI ===
+
+  const showToast = (message: string, color: 'success' | 'danger' | 'warning' = 'success') => {
+    setToastMessage(message);
+    setToastColor(color);
+  };
+
+  // Refrescar datos
+  const handleRefresh = async (event: CustomEvent) => {
+    await loadEmergencyContacts();
+    event.detail.complete();
+  };
+
+  // === Obtener todos los contactos del dispositivo ===
   const openContacts = async () => {
     try {
       const permission = await Contacts.requestPermissions();
@@ -58,116 +278,90 @@ const ContactsPage: React.FC = () => {
       if (permission.contacts === 'granted') {
         const result = await Contacts.getContacts({ projection });
 
-        console.log('=== DEBUG: Contacts result ===');
-        console.log('Total contacts:', result.contacts.length);
-        
-        // Solo mostrar el primer contacto para debug
-        if (result.contacts.length > 0) {
-          console.log('Primer contacto para análisis:');
-          getContactName(result.contacts[0]);
-        }
-
         if (!result.contacts.length) {
-          setToastMessage("No se encontraron contactos en el dispositivo");
+          showToast("No se encontraron contactos en el dispositivo", 'warning');
           return;
         }
 
-        // Filtrar contactos que tienen al menos un número de teléfono
         const contactsWithPhones = result.contacts.filter(contact => 
           contact.phones && contact.phones.length > 0
-        );
-
-        console.log('Contacts with phones:', contactsWithPhones.length);
+        ) as ContactFromDevice[];
 
         setAllContacts(contactsWithPhones);
         setFilteredContacts(contactsWithPhones);
         setIsModalOpen(true);
       } else {
-        setToastMessage("Permiso denegado para acceder a contactos");
+        showToast("Permiso denegado para acceder a contactos", 'danger');
       }
     } catch (error) {
       console.error('Error accessing contacts:', error);
-      setToastMessage("Error al acceder a contactos");
+      showToast("Error al acceder a contactos", 'danger');
     }
   };
 
-  // === Obtener nombre de contacto (CORREGIDO) ===
-  const getContactName = (contact: any) => {
-    console.log('=== DEBUG CONTACTO ===');
-    console.log('Contact completo:', JSON.stringify(contact, null, 2));
-    
-    // ¡AQUÍ ESTABA EL ERROR! 
-    // El name NO es un array, es un objeto directo
+  // === Obtener nombre de contacto ===
+  const getContactName = (contact: ContactFromDevice): string => {
     if (contact.name && typeof contact.name === 'object' && !Array.isArray(contact.name)) {
       const nameData = contact.name;
-      console.log('Name object data:', nameData);
       
-      // Método 1: display name (el más común)
       if (nameData.display && nameData.display.trim()) {
-        console.log('✅ Nombre encontrado en name.display:', nameData.display);
         return nameData.display;
       }
       
-      // Método 2: given name (nombre de pila)
       if (nameData.given && nameData.given.trim()) {
-        console.log('✅ Nombre encontrado en name.given:', nameData.given);
         return nameData.given;
       }
       
-      // Método 3: combinar given + family
       const firstName = nameData.given || '';
       const lastName = nameData.family || '';
       
       if (firstName.trim() || lastName.trim()) {
-        const fullName = `${firstName} ${lastName}`.trim();
-        console.log('✅ Nombre combinado given+family:', fullName);
-        return fullName;
+        return `${firstName} ${lastName}`.trim();
       }
     }
     
-    // Método 4: displayName directo (por si acaso)
     if (contact.displayName && contact.displayName.trim()) {
-      console.log('✅ Nombre encontrado en displayName:', contact.displayName);
       return contact.displayName;
     }
     
-    // Método 5: Como último recurso, usar el número
     if (contact.phones && contact.phones.length > 0) {
-      const phoneNumber = contact.phones[0].number;
-      console.log('❌ Usando teléfono como nombre:', phoneNumber);
-      return phoneNumber;
+      return contact.phones[0].number;
     }
     
-    console.log('❌ No se pudo extraer nombre, usando fallback');
     return "Sin nombre";
   };
 
   // === Agregar contacto a la lista de emergencia ===
-  const addEmergencyContact = (contact: any) => {
+  const addEmergencyContact = async (contact: ContactFromDevice) => {
     if (emergencyContacts.length >= 5) {
-      setToastMessage("Ya tienes el máximo de 5 contactos");
+      showToast("Ya tienes el máximo de 5 contactos", 'warning');
       return;
     }
 
     const phone = contact.phones?.[0]?.number;
     if (!phone) {
-      setToastMessage("Este contacto no tiene número válido");
+      showToast("Este contacto no tiene número válido", 'danger');
       return;
     }
 
-    const alreadyAdded = emergencyContacts.some((c) => c.phone === phone);
+    // Limpiar el número de teléfono
+    const cleanPhone = phone.replace(/\s+/g, '');
+
+    const alreadyAdded = emergencyContacts.some((c) => 
+      c.phone.replace(/\s+/g, '') === cleanPhone
+    );
     if (alreadyAdded) {
-      setToastMessage("Ese contacto ya fue agregado");
+      showToast("Ese contacto ya fue agregado", 'warning');
       return;
     }
 
-    const newContact: EmergencyContact = {
+    const newContactData = {
       name: getContactName(contact),
-      phone,
+      phone: cleanPhone,
     };
 
-    setEmergencyContacts([...emergencyContacts, newContact]);
-    setToastMessage(`Se agregó: ${getContactName(contact)}`);
+    console.log("Agregando nuevo contacto:", newContactData);
+    await saveContactToBackend(newContactData);
     setIsModalOpen(false);
   };
 
@@ -185,11 +379,21 @@ const ContactsPage: React.FC = () => {
   };
 
   // === Eliminar de emergencia ===
-  const deleteContact = (index: number) => {
-    const updated = [...emergencyContacts];
-    updated.splice(index, 1);
-    setEmergencyContacts(updated);
-    setToastMessage("Contacto eliminado");
+  const confirmDeleteContact = (index: number) => {
+    setDeleteContactIndex(index);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const deleteContact = async () => {
+    if (deleteContactIndex === null) return;
+    
+    const contact = emergencyContacts[deleteContactIndex];
+    if (contact.id) {
+      await deleteContactFromBackend(contact.id);
+    }
+    
+    setIsDeleteAlertOpen(false);
+    setDeleteContactIndex(null);
   };
 
   // === Editar alias ===
@@ -199,18 +403,16 @@ const ContactsPage: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editContactIndex === null) return;
 
-    const updated = [...emergencyContacts];
-    updated[editContactIndex] = {
-      ...updated[editContactIndex],
-      alias: editName,
-    };
+    const contact = emergencyContacts[editContactIndex];
+    if (contact.id) {
+      await updateContactInBackend(contact.id, { alias: editName });
+    }
 
-    setEmergencyContacts(updated);
-    setToastMessage("Nombre editado");
     setIsEditModalOpen(false);
+    setEditContactIndex(null);
   };
 
   // Estilos CSS modernos para la página
@@ -815,11 +1017,31 @@ const ContactsPage: React.FC = () => {
         </IonContent>
       </IonModal>
 
+      {/* Alerta de confirmación de eliminación */}
+      <IonAlert
+        isOpen={isDeleteAlertOpen}
+        onDidDismiss={() => setIsDeleteAlertOpen(false)}
+        header="Confirmar eliminación"
+        message="¿Estás seguro de que quieres eliminar este contacto de emergencia?"
+        buttons={[
+          {
+            text: 'Cancelar',
+            role: 'cancel'
+          },
+          {
+            text: 'Eliminar',
+            role: 'destructive',
+            handler: deleteContact
+          }
+        ]}
+      />
+
       {/* Toast */}
       <IonToast
         isOpen={!!toastMessage}
         message={toastMessage}
-        duration={2000}
+        duration={3000}
+        color={toastColor}
         onDidDismiss={() => setToastMessage("")}
       />
       </IonPage>

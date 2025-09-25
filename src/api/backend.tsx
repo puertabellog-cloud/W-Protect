@@ -1,4 +1,4 @@
-import { EmergencyContact, EmergencyAlertRequest, EmergencyAlertResponse, ProfileData } from './interface.js';
+import { EmergencyContact, EmergencyAlertRequest, EmergencyAlertResponse, ProfileData } from './interface';
 
 
 class BackendService {
@@ -6,7 +6,7 @@ class BackendService {
 
     constructor() {
         // Cambia esta URL por la de tu backend
-        // this.baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+        // this.baseUrl = 'http://localhost:8080/oikoom/api/w';
         this.baseUrl = 'https://oikoom.azurewebsites.net/oikoom/api/w';
     }
 
@@ -73,10 +73,12 @@ class BackendService {
 
     // Actualizar un contacto de emergencia
     async updateEmergencyContact(updates: Partial<EmergencyContact>): Promise<EmergencyContact> {
-        try {
             const response = await fetch(`${this.baseUrl}/contacts/save`, {
                 method: 'PUT',
                 body: JSON.stringify(updates),
+                headers: {
+                'Content-Type': 'application/json',   // <‑‑ esencial
+                },
             });
 
             return await this.handleResponse<EmergencyContact>(response);
@@ -174,6 +176,9 @@ class BackendService {
             const response = await fetch(`${this.baseUrl}/users/save`, {
                 method: 'PUT',
                 body: JSON.stringify(updates),
+                headers: {
+                'Content-Type': 'application/json',   // <‑‑ esencial
+                },
             });
 
             return await this.handleResponse<ProfileData>(response);

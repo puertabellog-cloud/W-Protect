@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+// import { updateProfile, getProfile } from '../../api/client';
+import { backendService } from '../../api/backend';
 import { useHistory } from 'react-router-dom';
 import { 
   IonPage, 
@@ -41,7 +43,6 @@ import {
   settingsOutline,
   logOutOutline
 } from 'ionicons/icons';
-import { updateProfile, getProfile } from '../../api/client';
 import { useDevice } from "../../context/DeviceContext";
 import { forumService } from '../../services/forumService';
 
@@ -85,6 +86,7 @@ const Profile: React.FC = () => {
             setError(null);
             
             try {
+
                 // 1. Intentar cargar desde localStorage (múltiples fuentes)
                 let localData = null;
                 
@@ -103,7 +105,9 @@ const Profile: React.FC = () => {
                 // 2. Intentar cargar desde API como respaldo
                 let apiData = null;
                 try {
-                    apiData = await getProfile(deviceId);
+                    const rawData = await backendService.getProfile(deviceId);
+                    // Si rawData es null/undefined, lo reemplazamos por {}
+                    const apiData = rawData ?? {};
                     console.log('✅ Datos cargados desde API');
                 } catch (apiError) {
                     console.log('⚠️ API no disponible, usando datos locales');
@@ -111,7 +115,6 @@ const Profile: React.FC = () => {
                 
                 // 3. Combinar datos: localStorage tiene prioridad si existe
                 const data = localData || apiData || {};
-                
                 setForm({
                     name:    data.name    ?? '',
                     phone:   data.phone   ?? '',
@@ -187,7 +190,7 @@ const Profile: React.FC = () => {
         setError(null);
         setSuccess(false);
         try {
-            await updateProfile({
+            await backendService.updateProfile({
                 ...form,
                 active: true,
                 deviceId: deviceId
