@@ -12,7 +12,8 @@ import { add, personCircle, trash, create, sync, cloudOffline } from 'ionicons/i
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
 import { backendService } from '../../api/backend';
-import { EmergencyContact } from '../../api/interface';
+import { EmergencyContact, ContactFromDevice, ProfileData } from '../../api/interface';
+import { useDevice } from "../../context/DeviceContext";
 
 // Configuración simplificada para mejor compatibilidad
 const projection = {
@@ -22,8 +23,8 @@ const projection = {
 
 const ContactsPage: React.FC = () => {
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
-  const [allContacts, setAllContacts] = useState<any[]>([]);
-  const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
+  const [allContacts, setAllContacts] = useState<ContactFromDevice[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<ContactFromDevice[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -34,9 +35,43 @@ const ContactsPage: React.FC = () => {
   const [editName, setEditName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
-  // Usuario actual (normalmente vendría de tu contexto de autenticación)
-  const currentUserId = 1; // Reemplaza con el ID real del usuario logueado
+  // Estado que indica si ya terminamos de cargar el perfil
+  const [profileReady, setProfileReady] = useState(false);
+
+  /* ----- NUEVO ESTADO PARA EL USER ID ----- */
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  /* ----- CONTEXTO DEL DISPOSITIVO (para obtener deviceId) ----- */
+  const { deviceId } = useDevice();  
+  /* --------------------------------------------------------------
+     1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
+     -------------------------------------------------------------- */
+  useEffect(() => {
+    // Si no tienes todavía un deviceId, no intentes la llamada.
+    if (!deviceId) return;
+
+    const fetchCurrentUser = async () => {
+      try {
+        // Llamada al backend (el método devuelve ProfileData)
+        const profile: ProfileData = await backendService.getProfile(deviceId);
+        console.log("Perfil obtenido:", profile);
+        // Supongamos que el id del usuario está en profile.id (ajusta si tu campo tiene otro nombre)
+        if (profile && typeof profile.id === 'number') {
+          setCurrentUserId(profile.id);
+          setProfileReady(true);
+
+        } else {
+          console.warn('El perfil recibido no contiene un id numérico', profile);
+        }
+      } catch (err) {
+        console.error('No se pudo obtener el perfil del usuario', err);
+        // Opcional: muestra un toast o alerta para que el usuario sepa que algo falló
+      }
+    };
+
+    fetchCurrentUser();
+  }, [deviceId]);   // Se vuelve a ejecutar sólo si cambia el deviceId
+
 
   // Monitorear estado de conexión
   useEffect(() => {
@@ -52,10 +87,23 @@ const ContactsPage: React.FC = () => {
     };
   }, []);
 
-  // Cargar contactos de emergencia al inicio
   useEffect(() => {
-    loadEmergencyContacts();
-  }, []);
+  // Esperamos a que el perfil se haya intentado cargar
+  if (!profileReady) return;
+
+  // Si no conseguimos un id, podemos abortar o usar un fallback
+  if (currentUserId === null) {
+    console.warn('⚠️ No hay userId disponible; los contactos no se cargarán.');
+    // Opcional: mostrar toast informativo al usuario
+    showToast('No se pudo identificar al usuario. Los contactos locales estarán disponibles.', 'warning');
+    // Podemos aun cargar los contactos locales (offline) aquí si queremos
+    loadEmergencyContacts();   // <-- llamamos a la función que ya tienes
+    return;
+  }
+
+  // Con id válido, cargamos los contactos del servidor (o local si offline)
+  loadEmergencyContacts();
+}, [profileReady, currentUserId]); 
 
   // === FUNCIONES DE BACKEND ===
 
@@ -79,7 +127,7 @@ const ContactsPage: React.FC = () => {
       
     } catch (error) {
       console.error('Error cargando contactos:', error);
-      showToast('Error cargando contactos del servidor', 'danger');
+      showToast('Error cargando contactos del servidor: ' + error, 'danger');
       
       // Cargar desde localStorage como fallback
       const savedContacts = localStorage.getItem('emergencyContacts');
@@ -91,12 +139,18 @@ const ContactsPage: React.FC = () => {
     }
   };
 
-  const saveContactToBackend = async (contact: Omit<EmergencyContact, 'id' | 'userId'>) => {
+  const saveContactToBackend = async (contactData: Omit<EmergencyContact, 'id' | 'userId'>) => {
+    console.log("Intentando guardar contacto:", contactData);
+    console.log("Estado actual de userId:", currentUserId);
+    if (currentUserId === null) {
+      console.warn('Intentando guardar contacto antes de conocer el userId');
+      return;
+    }
     if (!isOnline) {
       // Si no hay conexión, solo guardar localmente
       const newContact: EmergencyContact = {
         id: Date.now(), // ID temporal
-        ...contact,
+        ...contactData,
         userId: currentUserId
       };
       
@@ -110,15 +164,26 @@ const ContactsPage: React.FC = () => {
     }
 
     try {
-      const savedContact = await backendService.updateEmergencyContact(contact);
+      console.log("Guardando contacto...");
+      
+      // Crear el objeto completo para enviar al backend
+      const contactToSave: EmergencyContact = {
+        ...contactData,
+        userId: currentUserId
+        // No incluir 'id' para que el backend sepa que es un nuevo contacto
+      };
+      let ave = JSON.stringify(contactToSave);
+      console.log("Datos a enviar:", ave);
+      
+      const savedContact = await backendService.updateEmergencyContact(contactToSave);
       const updated = [...emergencyContacts, savedContact];
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
       
-      showToast(`Contacto agregado: ${contact.name}`, 'success');
+      showToast(`Contacto agregado: ${contactData.name}`, 'success');
     } catch (error) {
       console.error('Error guardando contacto:', error);
-      showToast('Error al guardar contacto en el servidor', 'danger');
+      showToast('Error al guardar contacto en el servidor: ' + error, 'danger');
     }
   };
 
@@ -137,7 +202,20 @@ const ContactsPage: React.FC = () => {
     }
 
     try {
-      const updatedContact = await backendService.updateEmergencyContact(updates);
+      // Buscar el contacto completo y actualizarlo
+      const originalContact = emergencyContacts.find(c => c.id === contactId);
+      if (!originalContact) {
+        throw new Error('Contacto no encontrado');
+      }
+
+      const updatedContactData: EmergencyContact = {
+        ...originalContact,
+        ...updates
+      };
+
+      console.log("Actualizando contacto:", updatedContactData);
+
+      const updatedContact = await backendService.updateEmergencyContact(updatedContactData);
       const updated = emergencyContacts.map(c => 
         c.id === contactId ? updatedContact : c
       );
@@ -147,7 +225,7 @@ const ContactsPage: React.FC = () => {
       showToast('Contacto actualizado', 'success');
     } catch (error) {
       console.error('Error actualizando contacto:', error);
-      showToast('Error al actualizar contacto', 'danger');
+      showToast('Error al actualizar contacto: ' + error, 'danger');
     }
   };
 
@@ -172,7 +250,7 @@ const ContactsPage: React.FC = () => {
       showToast('Contacto eliminado', 'success');
     } catch (error) {
       console.error('Error eliminando contacto:', error);
-      showToast('Error al eliminar contacto', 'danger');
+      showToast('Error al eliminar contacto: ' + error, 'danger');
     }
   };
 
@@ -204,7 +282,7 @@ const ContactsPage: React.FC = () => {
 
         const contactsWithPhones = result.contacts.filter(contact => 
           contact.phones && contact.phones.length > 0
-        );
+        ) as ContactFromDevice[];
 
         setAllContacts(contactsWithPhones);
         setFilteredContacts(contactsWithPhones);
@@ -219,7 +297,7 @@ const ContactsPage: React.FC = () => {
   };
 
   // === Obtener nombre de contacto ===
-  const getContactName = (contact: any) => {
+  const getContactName = (contact: ContactFromDevice): string => {
     if (contact.name && typeof contact.name === 'object' && !Array.isArray(contact.name)) {
       const nameData = contact.name;
       
@@ -251,7 +329,7 @@ const ContactsPage: React.FC = () => {
   };
 
   // === Agregar contacto a la lista de emergencia ===
-  const addEmergencyContact = async (contact: any) => {
+  const addEmergencyContact = async (contact: ContactFromDevice) => {
     if (emergencyContacts.length >= 5) {
       showToast("Ya tienes el máximo de 5 contactos", 'warning');
       return;
@@ -263,18 +341,24 @@ const ContactsPage: React.FC = () => {
       return;
     }
 
-    const alreadyAdded = emergencyContacts.some((c) => c.phone === phone);
+    // Limpiar el número de teléfono
+    const cleanPhone = phone.replace(/\s+/g, '');
+
+    const alreadyAdded = emergencyContacts.some((c) => 
+      c.phone.replace(/\s+/g, '') === cleanPhone
+    );
     if (alreadyAdded) {
       showToast("Ese contacto ya fue agregado", 'warning');
       return;
     }
 
-    const newContact = {
+    const newContactData = {
       name: getContactName(contact),
-      phone,
+      phone: cleanPhone,
     };
 
-    await saveContactToBackend(newContact);
+    console.log("Agregando nuevo contacto:", newContactData);
+    await saveContactToBackend(newContactData);
     setIsModalOpen(false);
   };
 
@@ -337,17 +421,9 @@ const ContactsPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const contactsToSync = emergencyContacts.map(c => ({
-        name: c.name,
-        phone: c.phone,
-        alias: c.alias
-      }));
-
-      const syncedContacts = await backendService.syncEmergencyContacts(currentUserId, contactsToSync);
-      setEmergencyContacts(syncedContacts);
-      localStorage.setItem('emergencyContacts', JSON.stringify(syncedContacts));
+      // Recargar desde el servidor
+      await loadEmergencyContacts();
       localStorage.removeItem('pendingSync');
-      
       showToast('Contactos sincronizados con el servidor', 'success');
     } catch (error) {
       console.error('Error sincronizando:', error);

@@ -1,13 +1,14 @@
 // services/BackendService.ts
 export interface EmergencyContact {
-  id?: number;
-  name: string;
-  phone: string;
-  alias?: string;
-  userId?: number;
+  id?: number | null; // Opcional para nuevos contactos
+  name: string | null;
+  phone: string | null;
+  alias?: string | null;
+  userId: number | null;
 }
 
 export interface ProfileData {
+  id: number | null;
   name: string | null;
   phone: string | null;
   email: string | null;
@@ -32,4 +33,17 @@ export interface EmergencyAlertResponse {
   timestamp: string;
   userId: number;
   contactsNotified: number;
+}
+// Tipos para el frontend
+export interface ContactFromDevice {
+  name: {
+    display?: string;
+    given?: string;
+    family?: string;
+  };
+  phones: Array<{
+    number: string;
+    type?: string;
+  }>;
+  displayName?: string;
 }
