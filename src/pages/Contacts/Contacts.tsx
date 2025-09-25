@@ -5,7 +5,7 @@ import {
   IonButton, IonIcon, IonList, IonItem, IonLabel,
   IonToast, IonModal, IonSearchbar, IonItemSliding,
   IonItemOption, IonItemOptions, IonInput, IonFooter,
-  IonText, IonBadge, IonAvatar
+  IonText, IonBadge, IonAvatar, IonAlert
 } from '@ionic/react';
 import { 
   add, personCircle, trash, create, shieldCheckmarkOutline,
