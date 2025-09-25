@@ -4,11 +4,15 @@ import {
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonButton, IonIcon, IonList, IonItem, IonLabel,
   IonToast, IonModal, IonSearchbar, IonItemSliding,
-  IonItemOption, IonItemOptions, IonInput, IonFooter
+  IonItemOption, IonItemOptions, IonInput, IonFooter,
+  IonSpinner, IonRefresher, IonRefresherContent,
+  IonAlert
 } from '@ionic/react';
-import { add, personCircle, trash, create } from 'ionicons/icons';
+import { add, personCircle, trash, create, sync, cloudOffline } from 'ionicons/icons';
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
+import { backendService } from '../../api/backend';
+import { EmergencyContact } from '../../api/interface';
 
 // Configuración simplificada para mejor compatibilidad
 const projection = {
@@ -16,36 +20,176 @@ const projection = {
   phones: true
 };
 
-interface EmergencyContact {
-  name: string;
-  phone: string;
-  alias?: string;
-}
-
 const ContactsPage: React.FC = () => {
   const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string>("");
+  const [toastColor, setToastColor] = useState<'success' | 'danger' | 'warning'>('success');
   const [editContactIndex, setEditContactIndex] = useState<number | null>(null);
+  const [deleteContactIndex, setDeleteContactIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Usuario actual (normalmente vendría de tu contexto de autenticación)
+  const currentUserId = 1; // Reemplaza con el ID real del usuario logueado
 
-  // Cargar contactos de emergencia desde localStorage al inicio
+  // Monitorear estado de conexión
   useEffect(() => {
-    const savedContacts = localStorage.getItem('emergencyContacts');
-    if (savedContacts) {
-      setEmergencyContacts(JSON.parse(savedContacts));
-    }
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // Guardar contactos en localStorage cada vez que cambien
+  // Cargar contactos de emergencia al inicio
   useEffect(() => {
-    localStorage.setItem('emergencyContacts', JSON.stringify(emergencyContacts));
-  }, [emergencyContacts]);
+    loadEmergencyContacts();
+  }, []);
 
-  // === Obtener todos los contactos ===
+  // === FUNCIONES DE BACKEND ===
+
+  const loadEmergencyContacts = async () => {
+    if (!isOnline) {
+      // Si no hay conexión, cargar desde localStorage
+      const savedContacts = localStorage.getItem('emergencyContacts');
+      if (savedContacts) {
+        setEmergencyContacts(JSON.parse(savedContacts));
+      }
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const contacts = await backendService.getEmergencyContacts(currentUserId);
+      setEmergencyContacts(contacts);
+      
+      // Guardar en localStorage como backup
+      localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+      
+    } catch (error) {
+      console.error('Error cargando contactos:', error);
+      showToast('Error cargando contactos del servidor', 'danger');
+      
+      // Cargar desde localStorage como fallback
+      const savedContacts = localStorage.getItem('emergencyContacts');
+      if (savedContacts) {
+        setEmergencyContacts(JSON.parse(savedContacts));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveContactToBackend = async (contact: Omit<EmergencyContact, 'id' | 'userId'>) => {
+    if (!isOnline) {
+      // Si no hay conexión, solo guardar localmente
+      const newContact: EmergencyContact = {
+        id: Date.now(), // ID temporal
+        ...contact,
+        userId: currentUserId
+      };
+      
+      const updated = [...emergencyContacts, newContact];
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      
+      showToast('Contacto guardado localmente. Se sincronizará cuando haya conexión.', 'warning');
+      return;
+    }
+
+    try {
+      const savedContact = await backendService.updateEmergencyContact(contact);
+      const updated = [...emergencyContacts, savedContact];
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
+      showToast(`Contacto agregado: ${contact.name}`, 'success');
+    } catch (error) {
+      console.error('Error guardando contacto:', error);
+      showToast('Error al guardar contacto en el servidor', 'danger');
+    }
+  };
+
+  const updateContactInBackend = async (contactId: number, updates: Partial<EmergencyContact>) => {
+    if (!isOnline) {
+      // Actualizar solo localmente
+      const updated = emergencyContacts.map(c => 
+        c.id === contactId ? { ...c, ...updates } : c
+      );
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      
+      showToast('Cambios guardados localmente', 'warning');
+      return;
+    }
+
+    try {
+      const updatedContact = await backendService.updateEmergencyContact(updates);
+      const updated = emergencyContacts.map(c => 
+        c.id === contactId ? updatedContact : c
+      );
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
+      showToast('Contacto actualizado', 'success');
+    } catch (error) {
+      console.error('Error actualizando contacto:', error);
+      showToast('Error al actualizar contacto', 'danger');
+    }
+  };
+
+  const deleteContactFromBackend = async (contactId: number) => {
+    if (!isOnline) {
+      // Eliminar solo localmente
+      const updated = emergencyContacts.filter(c => c.id !== contactId);
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      
+      showToast('Contacto eliminado localmente', 'warning');
+      return;
+    }
+
+    try {
+      await backendService.deleteEmergencyContact(contactId);
+      const updated = emergencyContacts.filter(c => c.id !== contactId);
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
+      showToast('Contacto eliminado', 'success');
+    } catch (error) {
+      console.error('Error eliminando contacto:', error);
+      showToast('Error al eliminar contacto', 'danger');
+    }
+  };
+
+  // === FUNCIONES DE UI ===
+
+  const showToast = (message: string, color: 'success' | 'danger' | 'warning' = 'success') => {
+    setToastMessage(message);
+    setToastColor(color);
+  };
+
+  // Refrescar datos
+  const handleRefresh = async (event: CustomEvent) => {
+    await loadEmergencyContacts();
+    event.detail.complete();
+  };
+
+  // === Obtener todos los contactos del dispositivo ===
   const openContacts = async () => {
     try {
       const permission = await Contacts.requestPermissions();
@@ -53,116 +197,84 @@ const ContactsPage: React.FC = () => {
       if (permission.contacts === 'granted') {
         const result = await Contacts.getContacts({ projection });
 
-        console.log('=== DEBUG: Contacts result ===');
-        console.log('Total contacts:', result.contacts.length);
-        
-        // Solo mostrar el primer contacto para debug
-        if (result.contacts.length > 0) {
-          console.log('Primer contacto para análisis:');
-          getContactName(result.contacts[0]);
-        }
-
         if (!result.contacts.length) {
-          setToastMessage("No se encontraron contactos en el dispositivo");
+          showToast("No se encontraron contactos en el dispositivo", 'warning');
           return;
         }
 
-        // Filtrar contactos que tienen al menos un número de teléfono
         const contactsWithPhones = result.contacts.filter(contact => 
           contact.phones && contact.phones.length > 0
         );
-
-        console.log('Contacts with phones:', contactsWithPhones.length);
 
         setAllContacts(contactsWithPhones);
         setFilteredContacts(contactsWithPhones);
         setIsModalOpen(true);
       } else {
-        setToastMessage("Permiso denegado para acceder a contactos");
+        showToast("Permiso denegado para acceder a contactos", 'danger');
       }
     } catch (error) {
       console.error('Error accessing contacts:', error);
-      setToastMessage("Error al acceder a contactos");
+      showToast("Error al acceder a contactos", 'danger');
     }
   };
 
-  // === Obtener nombre de contacto (CORREGIDO) ===
+  // === Obtener nombre de contacto ===
   const getContactName = (contact: any) => {
-    console.log('=== DEBUG CONTACTO ===');
-    console.log('Contact completo:', JSON.stringify(contact, null, 2));
-    
-    // ¡AQUÍ ESTABA EL ERROR! 
-    // El name NO es un array, es un objeto directo
     if (contact.name && typeof contact.name === 'object' && !Array.isArray(contact.name)) {
       const nameData = contact.name;
-      console.log('Name object data:', nameData);
       
-      // Método 1: display name (el más común)
       if (nameData.display && nameData.display.trim()) {
-        console.log('✅ Nombre encontrado en name.display:', nameData.display);
         return nameData.display;
       }
       
-      // Método 2: given name (nombre de pila)
       if (nameData.given && nameData.given.trim()) {
-        console.log('✅ Nombre encontrado en name.given:', nameData.given);
         return nameData.given;
       }
       
-      // Método 3: combinar given + family
       const firstName = nameData.given || '';
       const lastName = nameData.family || '';
       
       if (firstName.trim() || lastName.trim()) {
-        const fullName = `${firstName} ${lastName}`.trim();
-        console.log('✅ Nombre combinado given+family:', fullName);
-        return fullName;
+        return `${firstName} ${lastName}`.trim();
       }
     }
     
-    // Método 4: displayName directo (por si acaso)
     if (contact.displayName && contact.displayName.trim()) {
-      console.log('✅ Nombre encontrado en displayName:', contact.displayName);
       return contact.displayName;
     }
     
-    // Método 5: Como último recurso, usar el número
     if (contact.phones && contact.phones.length > 0) {
-      const phoneNumber = contact.phones[0].number;
-      console.log('❌ Usando teléfono como nombre:', phoneNumber);
-      return phoneNumber;
+      return contact.phones[0].number;
     }
     
-    console.log('❌ No se pudo extraer nombre, usando fallback');
     return "Sin nombre";
   };
 
   // === Agregar contacto a la lista de emergencia ===
-  const addEmergencyContact = (contact: any) => {
+  const addEmergencyContact = async (contact: any) => {
     if (emergencyContacts.length >= 5) {
-      setToastMessage("Ya tienes el máximo de 5 contactos");
+      showToast("Ya tienes el máximo de 5 contactos", 'warning');
       return;
     }
 
     const phone = contact.phones?.[0]?.number;
     if (!phone) {
-      setToastMessage("Este contacto no tiene número válido");
+      showToast("Este contacto no tiene número válido", 'danger');
       return;
     }
 
     const alreadyAdded = emergencyContacts.some((c) => c.phone === phone);
     if (alreadyAdded) {
-      setToastMessage("Ese contacto ya fue agregado");
+      showToast("Ese contacto ya fue agregado", 'warning');
       return;
     }
 
-    const newContact: EmergencyContact = {
+    const newContact = {
       name: getContactName(contact),
       phone,
     };
 
-    setEmergencyContacts([...emergencyContacts, newContact]);
-    setToastMessage(`Se agregó: ${getContactName(contact)}`);
+    await saveContactToBackend(newContact);
     setIsModalOpen(false);
   };
 
@@ -180,11 +292,21 @@ const ContactsPage: React.FC = () => {
   };
 
   // === Eliminar de emergencia ===
-  const deleteContact = (index: number) => {
-    const updated = [...emergencyContacts];
-    updated.splice(index, 1);
-    setEmergencyContacts(updated);
-    setToastMessage("Contacto eliminado");
+  const confirmDeleteContact = (index: number) => {
+    setDeleteContactIndex(index);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const deleteContact = async () => {
+    if (deleteContactIndex === null) return;
+    
+    const contact = emergencyContacts[deleteContactIndex];
+    if (contact.id) {
+      await deleteContactFromBackend(contact.id);
+    }
+    
+    setIsDeleteAlertOpen(false);
+    setDeleteContactIndex(null);
   };
 
   // === Editar alias ===
@@ -194,19 +316,48 @@ const ContactsPage: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editContactIndex === null) return;
 
-    const updated = [...emergencyContacts];
-    updated[editContactIndex] = {
-      ...updated[editContactIndex],
-      alias: editName,
-    };
+    const contact = emergencyContacts[editContactIndex];
+    if (contact.id) {
+      await updateContactInBackend(contact.id, { alias: editName });
+    }
 
-    setEmergencyContacts(updated);
-    setToastMessage("Nombre editado");
     setIsEditModalOpen(false);
+    setEditContactIndex(null);
   };
+
+  // === Sincronizar con servidor ===
+  const syncWithServer = async () => {
+    if (!isOnline) {
+      showToast('Sin conexión a internet', 'danger');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const contactsToSync = emergencyContacts.map(c => ({
+        name: c.name,
+        phone: c.phone,
+        alias: c.alias
+      }));
+
+      const syncedContacts = await backendService.syncEmergencyContacts(currentUserId, contactsToSync);
+      setEmergencyContacts(syncedContacts);
+      localStorage.setItem('emergencyContacts', JSON.stringify(syncedContacts));
+      localStorage.removeItem('pendingSync');
+      
+      showToast('Contactos sincronizados con el servidor', 'success');
+    } catch (error) {
+      console.error('Error sincronizando:', error);
+      showToast('Error al sincronizar contactos', 'danger');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const hasPendingSync = localStorage.getItem('pendingSync') === 'true';
 
   return (
     <IonPage>
@@ -216,6 +367,39 @@ const ContactsPage: React.FC = () => {
       />
 
       <IonContent fullscreen>
+        {/* Indicador de estado de conexión */}
+        {!isOnline && (
+          <IonCard color="warning" style={{ margin: 16 }}>
+            <IonCardContent style={{ textAlign: 'center' }}>
+              <IonIcon icon={cloudOffline} /> Sin conexión - Los cambios se guardarán localmente
+            </IonCardContent>
+          </IonCard>
+        )}
+
+        {/* Botón de sincronización */}
+        {(hasPendingSync && isOnline) && (
+          <IonCard color="primary" style={{ margin: 16 }}>
+            <IonCardContent style={{ textAlign: 'center' }}>
+              Hay cambios pendientes por sincronizar
+              <IonButton 
+                fill="clear" 
+                size="small" 
+                color="light" 
+                onClick={syncWithServer}
+                disabled={isLoading}
+              >
+                <IonIcon icon={sync} slot="start" />
+                Sincronizar ahora
+              </IonButton>
+            </IonCardContent>
+          </IonCard>
+        )}
+
+        {/* Refresher */}
+        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+          <IonRefresherContent></IonRefresherContent>
+        </IonRefresher>
+
         {/* Intro */}
         <IonCard color="primary" style={{ margin: 16, borderRadius: 16 }}>
           <IonCardHeader>
@@ -226,26 +410,35 @@ const ContactsPage: React.FC = () => {
           <IonCardContent style={{ color: 'white', fontSize: '1em', textAlign: 'center' }}>
             Aquí podrás agregar hasta 5 personas que serán notificadas si alguna vez te encuentras en peligro.
             <br /><br />
-            Cuando actives una alerta, tus contactos recibirán tu ubicación en WhatsApp.
+            Cuando actives una alerta, tus contactos recibirán tu ubicación inmediatamente.
           </IonCardContent>
         </IonCard>
+
+        {/* Loading spinner */}
+        {isLoading && (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <IonSpinner name="crescent" />
+            <p>Cargando...</p>
+          </div>
+        )}
 
         {/* Lista de contactos agregados */}
         <IonList>
           {emergencyContacts.map((c, index) => (
-            <IonItemSliding key={index}>
+            <IonItemSliding key={c.id || index}>
               <IonItem>
                 <IonIcon icon={personCircle} slot="start" />
                 <IonLabel>
                   <h2>{c.alias || c.name}</h2>
                   <p>{c.phone}</p>
+                  {!isOnline && <p style={{ fontSize: '0.8em', color: 'orange' }}>Offline</p>}
                 </IonLabel>
               </IonItem>
               <IonItemOptions side="end">
                 <IonItemOption color="warning" onClick={() => openEditModal(index)}>
                   <IonIcon icon={create} />
                 </IonItemOption>
-                <IonItemOption color="danger" onClick={() => deleteContact(index)}>
+                <IonItemOption color="danger" onClick={() => confirmDeleteContact(index)}>
                   <IonIcon icon={trash} />
                 </IonItemOption>
               </IonItemOptions>
@@ -260,11 +453,11 @@ const ContactsPage: React.FC = () => {
           color="success"
           expand="block"
           onClick={openContacts}
-          disabled={emergencyContacts.length >= 5}
+          disabled={emergencyContacts.length >= 5 || isLoading}
           style={{ margin: 16 }}
         >
           <IonIcon icon={add} slot="start" />
-          Agregar Contacto
+          Agregar Contacto ({emergencyContacts.length}/5)
         </IonButton>
       </IonFooter>
 
@@ -307,20 +500,51 @@ const ContactsPage: React.FC = () => {
             value={editName}
             onIonInput={(e) => setEditName(e.detail.value!)}
           />
-          <IonButton expand="block" color="primary" onClick={saveEdit} style={{ marginTop: 16 }}>
+          <IonButton 
+            expand="block" 
+            color="primary" 
+            onClick={saveEdit} 
+            style={{ marginTop: 16 }}
+            disabled={isLoading}
+          >
             Guardar
           </IonButton>
-          <IonButton expand="block" fill="outline" color="medium" onClick={() => setIsEditModalOpen(false)}>
+          <IonButton 
+            expand="block" 
+            fill="outline" 
+            color="medium" 
+            onClick={() => setIsEditModalOpen(false)}
+          >
             Cancelar
           </IonButton>
         </IonContent>
       </IonModal>
 
+      {/* Alerta de confirmación de eliminación */}
+      <IonAlert
+        isOpen={isDeleteAlertOpen}
+        onDidDismiss={() => setIsDeleteAlertOpen(false)}
+        header="Confirmar eliminación"
+        message="¿Estás seguro de que quieres eliminar este contacto de emergencia?"
+        buttons={[
+          {
+            text: 'Cancelar',
+            role: 'cancel'
+          },
+          {
+            text: 'Eliminar',
+            role: 'destructive',
+            handler: deleteContact
+          }
+        ]}
+      />
+
       {/* Toast */}
       <IonToast
         isOpen={!!toastMessage}
         message={toastMessage}
-        duration={2000}
+        duration={3000}
+        color={toastColor}
         onDidDismiss={() => setToastMessage("")}
       />
     </IonPage>

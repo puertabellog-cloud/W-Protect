@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonInput, IonTextarea, IonButton } from '@ionic/react';
-import { updateProfile, getProfile } from '../../api/client';
+// import { updateProfile, getProfile } from '../../api/client';
+import { backendService } from '../../api/backend';
 import { useDevice } from "../../context/DeviceContext";
 
 const Profile: React.FC = () => {
@@ -31,7 +32,7 @@ const Profile: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
-                const rawData = await getProfile(deviceId);
+                const rawData = await backendService.getProfile(deviceId);
                 // Si rawData es null/undefined, lo reemplazamos por {}
                 const data = rawData ?? {};
                 setForm({
@@ -56,7 +57,7 @@ const Profile: React.FC = () => {
         setError(null);
         setSuccess(false);
         try {
-            await updateProfile({
+            await backendService.updateProfile({
                 ...form,
                 active: true,
                 deviceId: deviceId
