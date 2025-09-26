@@ -27,7 +27,7 @@ export interface EmergencyAlertRequest {
 }
 
 export interface EmergencyAlertResponse {
-  alertId: string;
+  id: string;
   status: 'sent' | 'pending' | 'failed';
   contactsNotified: number;
   timestamp: string;
@@ -68,4 +68,9 @@ export interface ResourceCategory {
   descripcion: string;
   icono: string;
   color: string;
+}
+
+export interface EmergencyButtonProps {
+  disabled?: boolean;
+  className?: string;
 }

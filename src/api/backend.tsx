@@ -6,8 +6,8 @@ class BackendService {
 
     constructor() {
         // Cambia esta URL por la de tu backend
-        // this.baseUrl = 'http://localhost:8080/oikoom/api/w';
-        this.baseUrl = 'https://oikoom.azurewebsites.net/oikoom/api/w';
+        this.baseUrl = 'http://localhost:8080/oikoom/api/w';
+        // this.baseUrl = 'https://oikoom.azurewebsites.net/oikoom/api/w';
     }
 
     // Manejo genérico de errores
@@ -100,33 +100,33 @@ class BackendService {
     //     }
     // }
 
-    // // === GESTIÓN DE ALERTAS DE EMERGENCIA ===
+    // === GESTIÓN DE ALERTAS DE EMERGENCIA ===
 
-    // // Enviar alerta de emergencia
-    // async sendEmergencyAlert(userId: number, alertData: EmergencyAlertRequest): Promise<EmergencyAlertResponse> {
-    //     try {
-    //         const response = await fetch(`${this.baseUrl}/emergency-alerts`, {
-    //             method: 'POST',
-    //             headers: this.getHeaders(),
-    //             body: JSON.stringify({
-    //                 ...alertData,
-    //                 userId
-    //             }),
-    //         });
+    // Enviar alerta de emergencia
+    async sendEmergencyAlert(alertData: EmergencyAlertRequest): Promise<EmergencyAlertResponse> {
 
-    //         return await this.handleResponse<EmergencyAlertResponse>(response);
-    //     } catch (error) {
-    //         console.error('Error enviando alerta de emergencia:', error);
-    //         throw error;
-    //     }
-    // }
+        console.log('Enviando datos de alerta:', alertData);
+        try {
+            const response = await fetch(`${this.baseUrl}/alerts/save`, {
+                method: 'PUT',
+                body: JSON.stringify(alertData),
+                headers: {
+                'Content-Type': 'application/json',   // <‑‑ esencial
+                },
+            });
 
-    // // Obtener historial de alertas del usuario
+            return await this.handleResponse<EmergencyAlertResponse>(response);
+        } catch (error) {
+            console.error('Error enviando alerta de emergencia:', error);
+            throw error;
+        }
+    }
+
+    // Obtener historial de alertas del usuario
     // async getEmergencyAlerts(userId: number): Promise<EmergencyAlertResponse[]> {
     //     try {
-    //         const response = await fetch(`${this.baseUrl}/emergency-alerts/user/${userId}`, {
+    //         const response = await fetch(`${this.baseUrl}/alerts/user/${userId}`, {
     //             method: 'GET',
-    //             headers: this.getHeaders(),
     //         });
 
     //         return await this.handleResponse<EmergencyAlertResponse[]>(response);

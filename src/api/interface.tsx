@@ -47,3 +47,7 @@ export interface ContactFromDevice {
   }>;
   displayName?: string;
 }
+export interface EmergencyButtonProps {
+  disabled?: boolean;
+  className?: string;
+}
