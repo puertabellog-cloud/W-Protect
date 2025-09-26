@@ -7,10 +7,14 @@ import {
   IonButton,
   IonIcon,
   IonText,
-  IonSpinner
+  IonSpinner,
+  IonAlert,
+  IonToast
 } from '@ionic/react';
 import { locationOutline, shareOutline, refreshOutline } from 'ionicons/icons';
 import './MapWidget.css';
+import { backendService } from '../api/backend';
+import { useDevice } from "../context/DeviceContext";
 
 const MapWidget: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -19,6 +23,48 @@ const MapWidget: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [address, setAddress] = useState<string>('');
   const [userName, setUserName] = useState<string>('Usuario');
+  
+  // Estados para la alerta de emergencia
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isLoadingAlert, setIsLoadingAlert] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
+  const [profileReady, setProfileReady] = useState(false);
+
+  /* ----- NUEVO ESTADO PARA EL USER ID ----- */
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  /* ----- CONTEXTO DEL DISPOSITIVO (para obtener deviceId) ----- */
+  const { deviceId } = useDevice();  
+  /* --------------------------------------------------------------
+      1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
+      -------------------------------------------------------------- */
+  useEffect(() => {
+    // Si no tienes todavía un deviceId, no intentes la llamada.
+    if (!deviceId) return;
+
+    const fetchCurrentUser = async () => {
+      try {
+        // Llamada al backend (el método devuelve ProfileData)
+        const profile: ProfileData = await backendService.getProfile(deviceId);
+        console.log("Perfil obtenido:", profile);
+        // Supongamos que el id del usuario está en profile.id (ajusta si tu campo tiene otro nombre)
+        if (profile && typeof profile.id === 'number') {
+          setCurrentUserId(profile.id);
+          setProfileReady(true);
+
+        } else {
+          console.warn('El perfil recibido no contiene un id numérico', profile);
+        }
+      } catch (err) {
+        console.error('No se pudo obtener el perfil del usuario', err);
+        // Opcional: muestra un toast o alerta para que el usuario sepa que algo falló
+      }
+    };
+
+    fetchCurrentUser();
+  }, [deviceId]);   // Se vuelve a ejecutar sólo si cambia el deviceId
 
   useEffect(() => {
     loadUserName();
@@ -264,23 +310,50 @@ const MapWidget: React.FC = () => {
     getCurrentLocation();
   };
 
-  const shareLocation = () => {
-    if (!currentLocation) return;
-    
-    const shareText = `Mi ubicación: https://maps.google.com/?q=${currentLocation.lat},${currentLocation.lng}`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'Mi Ubicación',
-        text: shareText,
-      }).catch(err => console.log('Error compartiendo:', err));
-    } else {
-      // Fallback: copiar al portapapeles
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareText)
-          .then(() => alert('Ubicación copiada al portapapeles'))
-          .catch(() => console.log('Error copiando'));
-      }
+  // Funciones para la alerta de emergencia
+  const handleEmergencyClick = () => {
+    if (!currentLocation) {
+      setToastMessage('❌ No se puede enviar alerta sin ubicación');
+      setToastColor('danger');
+      setShowToast(true);
+      return;
+    }
+    setIsAlertOpen(true);
+  };
+
+  const sendEmergencyAlert = async () => {
+    if (!currentLocation) {
+      setToastMessage('❌ No se puede enviar alerta sin ubicación');
+      setToastColor('danger');
+      setShowToast(true);
+      return;
+    }
+
+    setIsLoadingAlert(true);
+    setIsAlertOpen(false);
+
+    try {
+      const alertData = {
+        message: 'Necesito ayuda urgente',
+        latitude: currentLocation.lat,
+        longitude: currentLocation.lng,
+        accuracy: 10, // Aproximado
+        userId: currentUserId // Reemplaza con el ID real del usuario
+      };
+
+      console.log('Enviando alerta de emergencia:', alertData);
+      const result = await backendService.sendEmergencyAlert(alertData);
+      
+      setToastMessage(`✅ Alerta enviada exitosamente a ${result.contactsNotified} contactos`);
+      setToastColor('success');
+      
+    } catch (error) {
+      console.error('Error enviando alerta:', error);
+      setToastMessage('❌ Error al enviar la alerta. Verifica tu conexión.');
+      setToastColor('danger');
+    } finally {
+      setIsLoadingAlert(false);
+      setShowToast(true);
     }
   };
 
@@ -347,15 +420,44 @@ const MapWidget: React.FC = () => {
             </div>
 
             <div className="location-actions">
-              <IonButton 
-                expand="block" 
-                onClick={shareLocation}
-                style={{ marginTop: '12px' }}
+              {/* Botón de alerta de emergencia */}
+              <IonButton
+                expand="block"
+                fill="outline"
+                size="small"
+                disabled={isLoadingAlert}
+                onClick={handleEmergencyClick}
+                style={{
+                  '--color': 'var(--foreground)',
+                  '--border-color': 'var(--border)',
+                  height: '48px',
+                  textAlign: 'left',
+                  justifyContent: 'flex-start',
+                  opacity: isLoadingAlert ? 0.6 : 1,
+                  marginTop: '12px'
+                }}
               >
-                <IonIcon icon={shareOutline} slot="start" />
-                Compartir Mi Ubicación
+                {isLoadingAlert ? (
+                  <IonSpinner 
+                    name="crescent" 
+                    style={{ marginRight: '10px', color: 'var(--womxi-pink-500)' }} 
+                  />
+                ) : (
+                  <IonIcon 
+                    icon={locationOutline} 
+                    style={{ marginRight: '10px', color: 'var(--womxi-pink-500)' }} 
+                  />
+                )}
+                <div>
+                  <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>
+                    {isLoadingAlert ? 'Enviando Alerta...' : 'Compartir Ubicación'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                    A contactos de emergencia
+                  </div>
+                </div>
               </IonButton>
-              
+
               <IonButton 
                 fill="outline" 
                 expand="block" 
@@ -369,6 +471,36 @@ const MapWidget: React.FC = () => {
           </div>
         )}
       </IonCardContent>
+
+      {/* Confirmación de emergencia */}
+      <IonAlert
+        isOpen={isAlertOpen}
+        onDidDismiss={() => setIsAlertOpen(false)}
+        header="⚠️ Alerta de Emergencia"
+        message="¿Estás seguro de que quieres enviar una alerta de emergencia? Se notificará inmediatamente a tus contactos de emergencia con tu ubicación actual."
+        buttons={[
+          {
+            text: 'Cancelar',
+            role: 'cancel',
+            cssClass: 'secondary'
+          },
+          {
+            text: '🚨 Enviar Alerta',
+            cssClass: 'danger',
+            handler: sendEmergencyAlert
+          }
+        ]}
+      />
+
+      {/* Toast de confirmación */}
+      <IonToast
+        isOpen={showToast}
+        onDidDismiss={() => setShowToast(false)}
+        message={toastMessage}
+        duration={4000}
+        color={toastColor}
+        position="top"
+      />
     </IonCard>
   );
 };
