@@ -15,6 +15,8 @@ import { locationOutline, shareOutline, refreshOutline } from 'ionicons/icons';
 import './MapWidget.css';
 import { backendService } from '../api/backend';
 import { useDevice } from "../context/DeviceContext";
+import { ProfileData } from '../types';
+import { EmergencyAlertRequest } from '../api/interface';
 
 const MapWidget: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -329,16 +331,25 @@ const MapWidget: React.FC = () => {
       return;
     }
 
+    if (currentUserId === null) {
+      setToastMessage('❌ No se pudo identificar al usuario');
+      setToastColor('danger');
+      setShowToast(true);
+      return;
+    }
+
     setIsLoadingAlert(true);
     setIsAlertOpen(false);
 
     try {
-      const alertData = {
-        message: 'Necesito ayuda urgente',
-        latitude: currentLocation.lat,
-        longitude: currentLocation.lng,
-        accuracy: 10, // Aproximado
-        userId: currentUserId // Reemplaza con el ID real del usuario
+      const alertData: EmergencyAlertRequest = {
+        userId: currentUserId, // Ahora sabemos que no es null
+        emergencyType: 'GENERAL',
+        location: {
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng
+        },
+        message: 'Necesito ayuda urgente'
       };
 
       console.log('Enviando alerta de emergencia:', alertData);

@@ -193,7 +193,7 @@ const Profile: React.FC = () => {
             await backendService.updateProfile({
                 ...form,
                 active: true,
-                deviceId: deviceId
+                ...(deviceId && { deviceId: deviceId })
             });
             // Limpiar datos de registro del localStorage ya que ahora están en la API
             localStorage.removeItem('wprotect_registration');

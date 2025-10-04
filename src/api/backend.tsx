@@ -6,8 +6,7 @@ class BackendService {
 
     constructor() {
         // Cambia esta URL por la de tu backend
-        this.baseUrl = 'http://localhost:8080/oikoom/api/w';
-        // this.baseUrl = 'https://oikoom.azurewebsites.net/oikoom/api/w';
+        this.baseUrl = 'https://goldfish-app-h7qp9.ondigitalocean.app/';
     }
 
     // Manejo genérico de errores
@@ -41,7 +40,7 @@ class BackendService {
     // Obtener contactos de emergencia del usuario
     async getEmergencyContacts(userId: number): Promise<EmergencyContact[]> {
         try {
-            const response = await fetch(`${this.baseUrl}/contacts/user/${userId}`, {
+            const response = await fetch(`${this.baseUrl}w/contacts/user/${userId}`, {
                 method: 'GET',
             });
 
@@ -55,7 +54,7 @@ class BackendService {
     // Actualizar un contacto de emergencia
     async updateEmergencyContact(updates: Partial<EmergencyContact>): Promise<EmergencyContact> {
         try {
-            const response = await fetch(`${this.baseUrl}/contacts/save`, {
+            const response = await fetch(`${this.baseUrl}w/contacts/save`, {
                 method: 'PUT',
                 body: JSON.stringify(updates),
                 headers: {
@@ -73,7 +72,7 @@ class BackendService {
     // Eliminar un contacto de emergencia
     async deleteEmergencyContact(contactId: number): Promise<void> {
         try {
-            const response = await fetch(`${this.baseUrl}/contacts/delete/${contactId}`, {
+            const response = await fetch(`${this.baseUrl}w/contacts/delete/${contactId}`, {
                 method: 'DELETE',
             });
 
@@ -107,7 +106,7 @@ class BackendService {
 
         console.log('Enviando datos de alerta:', alertData);
         try {
-            const response = await fetch(`${this.baseUrl}/alerts/save`, {
+            const response = await fetch(`${this.baseUrl}w/alerts/save`, {
                 method: 'PUT',
                 body: JSON.stringify(alertData),
                 headers: {
@@ -142,7 +141,7 @@ class BackendService {
     // Obtener información del usuario actual
     async getProfile(deviceId: string): Promise<ProfileData> {
         try {
-            const response = await fetch(`${this.baseUrl}/users/device/${deviceId}`, {
+            const response = await fetch(`${this.baseUrl}w/users/device/${deviceId}`, {
                 method: 'GET',
             });
             return await this.handleResponse<ProfileData>(response);
@@ -155,7 +154,7 @@ class BackendService {
     // Actualizar información del usuario
     async updateProfile(updates: Partial<ProfileData>): Promise<ProfileData> {
         try {
-            const response = await fetch(`${this.baseUrl}/users/save`, {
+            const response = await fetch(`${this.baseUrl}w/users/save`, {
                 method: 'PUT',
                 body: JSON.stringify(updates),
                 headers: {

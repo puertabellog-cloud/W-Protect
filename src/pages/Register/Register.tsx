@@ -15,7 +15,7 @@ import {
   mailOutline,
   chatbubbleOutline
 } from 'ionicons/icons';
-import { updateProfile } from '../../api/client';
+import { saveUser } from '../../services/springBootServices';
 import { useDevice } from '../../context/DeviceContext';
 import { sendWelcomeEmail } from '../../services/emailService';
 
@@ -86,12 +86,12 @@ export const Register: React.FC<RegisterProps> = ({
 
       // SEGUNDO: Intentar guardar en API (puede fallar)
       try {
-        await updateProfile({
+        await saveUser({
           name: form.name.trim(),
           phone: form.phone.trim(),
           email: form.email.trim(),
           mensaje: form.emergencyMessage.trim() || 'Necesito ayuda urgente',
-          deviceId: deviceId,
+          ...(deviceId && { deviceId: deviceId }),
           active: true
         });
         console.log('✅ Perfil guardado en API exitosamente');

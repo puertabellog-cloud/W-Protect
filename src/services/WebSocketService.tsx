@@ -1,7 +1,7 @@
 import { EmergencyAlertResponse } from '../api/interface';
 
 export interface WebSocketMessage {
-  type: 'EMERGENCY_ALERT' | 'CONNECTION_STATUS' | 'ERROR';
+  type: 'EMERGENCY_ALERT' | 'CONNECTION_STATUS' | 'ERROR' | 'REGISTER_USER' | 'MARK_ALERT_SEEN' | 'ALERT_RECEIVED';
   data: any;
   timestamp: string;
 }

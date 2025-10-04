@@ -35,6 +35,11 @@ import './theme/main.css';
 import './theme/ionic-overrides.css';
 import './theme/ionic-overrides.css';
 
+// Importar herramientas de testing (solo en desarrollo)
+if (import.meta.env.DEV) {
+  import('./utils/testBackend');
+}
+
 const container = document.getElementById('root');
 const root = createRoot(container!);
 root.render(

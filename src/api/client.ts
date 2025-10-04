@@ -1,29 +1,41 @@
-const API_BASE_URL = 'https://oikoom.azurewebsites.net/oikoom/api/w';
-// const API_BASE_URL = 'http://localhost:8080/oikoom/api/w';
+import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { API_URL, REQUEST_TIMEOUT } from '../config/api';
 
+// Re-exportar el cliente desde apiClient.ts para evitar dependencias circulares
+export { apiClient } from './apiClient';
+export { default } from './apiClient';
+
+// === FUNCIONES DE COMPATIBILIDAD ===
+
+/**
+ * NOTA: Estas funciones han sido removidas para evitar dependencias circulares.
+ * Usar directamente los servicios de springBootServices.ts en su lugar.
+ * 
+ * Ejemplo:
+ * import { getUserByDeviceId, saveUser } from '../services/springBootServices';
+ */
+
+// Funciones removidas para evitar imports circulares:
+// - getProfile (usar getUserByDeviceId)
+// - updateProfile (usar saveUser)
+
+// === TIPOS PARA COMPATIBILIDAD ===
+
+/**
+ * @deprecated Usar User de ../types en su lugar
+ */
 export interface ProfileData {
-  name: string | null;
-  phone: string | null;
-  email: string | null;
-  mensaje: string | null;
-  deviceId: string | null;
-  active: boolean;
-  // Agrega más campos según tu modelo
+  id?: number;
+  name: string;
+  email: string;
+  phone?: string;
+  deviceId?: string;
+  active?: boolean;
+  mensaje?: string;
 }
 
-export async function getProfile(deviceId: string) {
-  const response = await fetch(`${API_BASE_URL}/users/device/${deviceId}`);
-  if (!response.ok) throw new Error('Error al obtener el perfil');
-  return response.json();
-}
-
-export async function updateProfile(data: ProfileData) {
-  console.log('Updating profile with data:', data);
-  const response = await fetch(`${API_BASE_URL}/users/save`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Error al actualizar el perfil');
-  return response.json();
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
 }

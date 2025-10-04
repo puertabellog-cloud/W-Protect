@@ -1,20 +1,15 @@
-// Interfaces para la API de Backend
+// Archivo de compatibilidad - Se recomienda usar ../types en su lugar
+// Re-exportamos tipos centralizados para mantener compatibilidad
 
-export interface EmergencyContact {
-  name: string;
-  phone: string;
-  alias?: string;
-}
+export type { 
+  Contact as EmergencyContact,
+  User as ProfileData,
+  ApiResponse,
+  Alert as EmergencyAlert,
+  Location
+} from '../types';
 
-export interface ProfileData {
-  name: string | null;
-  phone: string | null;
-  email: string | null;
-  mensaje: string | null;
-  deviceId: string | null;
-  active: boolean;
-}
-
+// Tipos específicos para la API de emergencias
 export interface EmergencyAlertRequest {
   userId: number;
   emergencyType: string;
@@ -41,11 +36,18 @@ export interface AlertStatus {
   resolvedAt?: string;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
+// Tipo específico para contactos del dispositivo
+export interface ContactFromDevice {
+  contactId: string;
+  displayName?: string;
+  name?: {
+    given?: string;
+    family?: string;
+    display?: string;
+  };
+  phones?: Array<{
+    number: string;
+  }>;
 }
 
 // Interfaces para el sistema de recursos/artículos

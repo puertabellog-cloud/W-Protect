@@ -14,9 +14,24 @@ import {
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
 import { getInitials } from '../../utils/avatarUtils';
-import { backendService } from '../../api/backend';
-import { EmergencyContact, ContactFromDevice, ProfileData } from '../../api/interface';
+import { getContactsByUserId, saveContact, deleteContact as deleteContactService } from '../../services/springBootServices';
+import { getUserByDeviceId } from '../../services/springBootServices';
+import { Contact, User } from '../../types';
 import { useDevice } from "../../context/DeviceContext";
+
+// Tipos específicos para este componente
+interface ContactFromDevice {
+  contactId: string;
+  displayName?: string;
+  name?: {
+    given?: string;
+    family?: string;
+    display?: string;
+  };
+  phones?: Array<{
+    number: string;
+  }>;
+}
 
 // Configuración simplificada para mejor compatibilidad
 const projection = {
@@ -25,7 +40,7 @@ const projection = {
 };
 
 const ContactsPage: React.FC = () => {
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [emergencyContacts, setEmergencyContacts] = useState<Contact[]>([]);
   const [allContacts, setAllContacts] = useState<ContactFromDevice[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<ContactFromDevice[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,20 +70,18 @@ const ContactsPage: React.FC = () => {
 
     const fetchCurrentUser = async () => {
       try {
-        // Llamada al backend (el método devuelve ProfileData)
-        const profile: ProfileData = await backendService.getProfile(deviceId);
+        // Llamada al backend usando la nueva estructura
+        const profile: User = await getUserByDeviceId(deviceId);
         console.log("Perfil obtenido:", profile);
-        // Supongamos que el id del usuario está en profile.id (ajusta si tu campo tiene otro nombre)
+        // El id del usuario está en profile.id
         if (profile && typeof profile.id === 'number') {
           setCurrentUserId(profile.id);
           setProfileReady(true);
-
         } else {
           console.warn('El perfil recibido no contiene un id numérico', profile);
         }
       } catch (err) {
         console.error('No se pudo obtener el perfil del usuario', err);
-        // Opcional: muestra un toast o alerta para que el usuario sepa que algo falló
       }
     };
 
@@ -120,9 +133,15 @@ const ContactsPage: React.FC = () => {
       return;
     }
 
+    // Verificar que tenemos un userId válido
+    if (currentUserId === null) {
+      console.warn('No se puede cargar contactos sin userId');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const contacts = await backendService.getEmergencyContacts(currentUserId);
+      const contacts = await getContactsByUserId(currentUserId);
       setEmergencyContacts(contacts);
       
       // Guardar en localStorage como backup
@@ -142,7 +161,7 @@ const ContactsPage: React.FC = () => {
     }
   };
 
-  const saveContactToBackend = async (contactData: Omit<EmergencyContact, 'id' | 'userId'>) => {
+  const saveContactToBackend = async (contactData: { name: string; phone: string }) => {
     console.log("Intentando guardar contacto:", contactData);
     console.log("Estado actual de userId:", currentUserId);
     if (currentUserId === null) {
@@ -151,10 +170,10 @@ const ContactsPage: React.FC = () => {
     }
     if (!isOnline) {
       // Si no hay conexión, solo guardar localmente
-      const newContact: EmergencyContact = {
+      const newContact: Contact = {
         id: Date.now(), // ID temporal
         ...contactData,
-        userId: currentUserId
+        wuserId: currentUserId // Usar wuserId según la estructura de Contact
       };
       
       const updated = [...emergencyContacts, newContact];
@@ -170,15 +189,15 @@ const ContactsPage: React.FC = () => {
       console.log("Guardando contacto...");
       
       // Crear el objeto completo para enviar al backend
-      const contactToSave: EmergencyContact = {
+      const contactToSave: Contact = {
         ...contactData,
-        userId: currentUserId
+        wuserId: currentUserId // Usar wuserId según la estructura de Contact
         // No incluir 'id' para que el backend sepa que es un nuevo contacto
       };
       let ave = JSON.stringify(contactToSave);
       console.log("Datos a enviar:", ave);
       
-      const savedContact = await backendService.updateEmergencyContact(contactToSave);
+      const savedContact = await saveContact(contactToSave);
       const updated = [...emergencyContacts, savedContact];
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
@@ -190,7 +209,7 @@ const ContactsPage: React.FC = () => {
     }
   };
 
-  const updateContactInBackend = async (contactId: number, updates: Partial<EmergencyContact>) => {
+  const updateContactInBackend = async (contactId: number, updates: Partial<Contact>) => {
     if (!isOnline) {
       // Actualizar solo localmente
       const updated = emergencyContacts.map(c => 
@@ -211,14 +230,14 @@ const ContactsPage: React.FC = () => {
         throw new Error('Contacto no encontrado');
       }
 
-      const updatedContactData: EmergencyContact = {
+      const updatedContactData: Contact = {
         ...originalContact,
         ...updates
       };
 
       console.log("Actualizando contacto:", updatedContactData);
 
-      const updatedContact = await backendService.updateEmergencyContact(updatedContactData);
+      const updatedContact = await saveContact(updatedContactData); // Usar saveContact para actualizar
       const updated = emergencyContacts.map(c => 
         c.id === contactId ? updatedContact : c
       );
@@ -245,7 +264,7 @@ const ContactsPage: React.FC = () => {
     }
 
     try {
-      await backendService.deleteEmergencyContact(contactId);
+      await deleteContactService(contactId);
       const updated = emergencyContacts.filter(c => c.id !== contactId);
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
@@ -399,7 +418,7 @@ const ContactsPage: React.FC = () => {
   // === Editar alias ===
   const openEditModal = (index: number) => {
     setEditContactIndex(index);
-    setEditName(emergencyContacts[index].alias || emergencyContacts[index].name);
+    setEditName(emergencyContacts[index].name);
     setIsEditModalOpen(true);
   };
 
@@ -408,7 +427,7 @@ const ContactsPage: React.FC = () => {
 
     const contact = emergencyContacts[editContactIndex];
     if (contact.id) {
-      await updateContactInBackend(contact.id, { alias: editName });
+      await updateContactInBackend(contact.id, { name: editName }); // Usar name en lugar de alias
     }
 
     setIsEditModalOpen(false);
@@ -787,10 +806,10 @@ const ContactsPage: React.FC = () => {
                 <IonItemSliding key={index} className="contact-card">
                   <IonItem className="contact-item">
                     <div className="contact-avatar">
-                      {getInitials(c.alias || c.name)}
+                      {getInitials(c.name)}
                     </div>
                     <div className="contact-info">
-                      <h3 className="contact-name">{c.alias || c.name}</h3>
+                      <h3 className="contact-name">{c.name}</h3>
                       <p className="contact-phone">
                         <IonIcon icon={callOutline} />
                         {c.phone}
@@ -801,7 +820,7 @@ const ContactsPage: React.FC = () => {
                     <IonItemOption className="edit-button" onClick={() => openEditModal(index)}>
                       <IonIcon icon={create} />
                     </IonItemOption>
-                    <IonItemOption className="delete-button" onClick={() => deleteContact(index)}>
+                    <IonItemOption className="delete-button" onClick={() => confirmDeleteContact(index)}>
                       <IonIcon icon={trash} />
                     </IonItemOption>
                   </IonItemOptions>
