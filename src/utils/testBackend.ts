@@ -91,7 +91,7 @@ export const testContactOperations = async (userId: number) => {
     
     // Test 2: Crear contacto de prueba
     const testContact: Contact = {
-      wuserId: userId,
+      wusuarioId: userId,
       name: 'Contacto de Prueba',
       phone: '+0987654321',
       email: 'contacto@test.com',

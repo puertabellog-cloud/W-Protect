@@ -23,7 +23,7 @@ export interface User {
  */
 export interface Contact {
   id?: number;
-  wuserId: number;
+  wusuarioId: number;
   name: string;
   phone: string;
   email?: string;
@@ -31,18 +31,16 @@ export interface Contact {
 }
 
 /**
- * Alerta - Corresponde a la entidad Walert del backend
+ * Alerta - Corresponde EXACTAMENTE a la entidad Walerta del backend
  */
 export interface Alert {
   id?: number;
-  userId: number;
-  message: string;
-  alertType?: string;
-  timestamp?: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-  };
+  mensaje: string;           // ✅ Coincide con backend (no "message")
+  latitud: string;          // ✅ Coincide con backend (String, no number)
+  longitud: string;         // ✅ Coincide con backend (String, no number)
+  timestamp?: string;       // ✅ Coincide con backend
+  userId: number;           // ✅ Coincide con backend
+  contactosNotificados?: number; // ✅ Coincide con backend
 }
 
 // === TIPOS PARA AUTENTICACIÓN ===
@@ -70,20 +68,20 @@ export interface ApiResponse<T> {
 // === TIPOS PARA GEOLOCALIZACIÓN ===
 
 export interface Location {
-  latitude: number;
-  longitude: number;
+  latitud: number;
+  longitud: number;
   address?: string;
 }
 
 // === TIPOS PARA SOLICITUDES DE EMERGENCIA ===
 
 export interface EmergencyAlertRequest {
-  message: string;
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-  userId: number | null;
-  emergencyType: string;
+  mensaje: string;          // ✅ Coincide con backend
+  latitud: string;         // ✅ Coincide con backend (String)
+  longitud: string;        // ✅ Coincide con backend (String)
+  userId: number;          // ✅ Coincide con backend
+  timestamp?: string;      // ✅ Opcional, se puede generar en backend
+  contactosNotificados?: number; // ✅ Opcional
 }
 
 // === ALIAS PARA COMPATIBILIDAD ===

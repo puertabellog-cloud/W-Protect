@@ -11,14 +11,12 @@ export type {
 
 // Tipos específicos para la API de emergencias
 export interface EmergencyAlertRequest {
-  userId: number;
-  emergencyType: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-  };
-  message?: string;
-  contactIds?: number[];
+  mensaje: string;          // ✅ Coincide con backend
+  latitud: string;         // ✅ Coincide con backend (String)
+  longitud: string;        // ✅ Coincide con backend (String)  
+  userId: number;          // ✅ Coincide con backend
+  timestamp?: string;      // ✅ Opcional
+  contactosNotificados?: number; // ✅ Opcional
 }
 
 export interface EmergencyAlertResponse {

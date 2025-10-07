@@ -173,7 +173,7 @@ const ContactsPage: React.FC = () => {
       const newContact: Contact = {
         id: Date.now(), // ID temporal
         ...contactData,
-        wuserId: currentUserId // Usar wuserId según la estructura de Contact
+        wusuarioId: currentUserId // Usar wusuarioId según la estructura de Contact
       };
       
       const updated = [...emergencyContacts, newContact];
@@ -191,7 +191,7 @@ const ContactsPage: React.FC = () => {
       // Crear el objeto completo para enviar al backend
       const contactToSave: Contact = {
         ...contactData,
-        wuserId: currentUserId // Usar wuserId según la estructura de Contact
+        wusuarioId: currentUserId // Usar wusuarioId según la estructura de Contact
         // No incluir 'id' para que el backend sepa que es un nuevo contacto
       };
       let ave = JSON.stringify(contactToSave);

@@ -20,16 +20,16 @@ export interface ProfileData {
 
 export interface EmergencyAlertRequest {
   message?: string;
-  latitude: number;
-  longitude: number;
+  latitud: number;
+  longitud: number;
   accuracy?: number;
 }
 
 export interface EmergencyAlertResponse {
   id: number;
   message: string;
-  latitude: number;
-  longitude: number;
+  latitud: number;
+  longitud: number;
   timestamp: string;
   userId: number;
   contactsNotified: number;

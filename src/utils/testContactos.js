@@ -23,7 +23,7 @@ const testContactos = {
       const contactoPrueba = {
         name: 'María Test',
         phone: '+57987654321',
-        wuserId: user.id,
+        wusuarioId: user.id,
         email: 'maria@test.com'
       };
       

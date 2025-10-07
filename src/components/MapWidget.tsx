@@ -17,6 +17,7 @@ import { backendService } from '../api/backend';
 import { useDevice } from "../context/DeviceContext";
 import { ProfileData } from '../types';
 import { EmergencyAlertRequest } from '../api/interface';
+import { sendEmergencyAlertFromMap } from '../services/emergencyService';
 
 const MapWidget: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -342,20 +343,18 @@ const MapWidget: React.FC = () => {
     setIsAlertOpen(false);
 
     try {
-      const alertData: EmergencyAlertRequest = {
-        userId: currentUserId, // Ahora sabemos que no es null
-        emergencyType: 'GENERAL',
-        location: {
-          latitude: currentLocation.lat,
-          longitude: currentLocation.lng
-        },
-        message: 'Necesito ayuda urgente'
-      };
-
-      console.log('Enviando alerta de emergencia:', alertData);
-      const result = await backendService.sendEmergencyAlert(alertData);
+      console.log('📍 Coordenadas originales de Google Maps:', currentLocation);
       
-      setToastMessage(`✅ Alerta enviada exitosamente a ${result.contactsNotified} contactos`);
+      // Usar el nuevo servicio que mapea correctamente las coordenadas
+      const result = await sendEmergencyAlertFromMap(
+        currentUserId,
+        'Necesito ayuda urgente',      // ✅ mensaje (no message)
+        currentLocation,               // { lat, lng } de Google Maps  
+        'GENERAL'
+      );
+
+      console.log('✅ Resultado del envío de alerta:', result);
+      setToastMessage(`✅ Alerta enviada exitosamente. ID: ${result.id}`);
       setToastColor('success');
       
     } catch (error) {
