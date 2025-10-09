@@ -105,3 +105,25 @@ export const saveAlert = async (alert: Alert): Promise<Alert> => {
     throw new Error('Error al guardar alerta');
   }
 };
+
+// === SERVICIOS DE TRACKING DE UBICACIÓN ===
+
+/**
+ * Enviar tracking de ubicación cada 5 segundos
+ */
+export const saveLocationTracking = async (locationData: {
+  deviceId: string;
+  latitud: string;
+  longitud: string;
+  timestamp: string;
+  accuracy?: number;
+}): Promise<void> => {
+  try {
+    console.log('📍 Enviando tracking de ubicación:', locationData);
+    await apiClient.post(API_ENDPOINTS.locationTracking.save, locationData);
+    console.log('✅ Tracking de ubicación enviado exitosamente');
+  } catch (error) {
+    console.error('❌ Error enviando tracking de ubicación:', error);
+    throw new Error('Error enviando tracking de ubicación');
+  }
+};

@@ -9,7 +9,9 @@ import {
   IonText,
   IonSpinner,
   IonAlert,
-  IonToast
+  IonToast,
+  IonChip,
+  IonLabel
 } from '@ionic/react';
 import { locationOutline, shareOutline, refreshOutline } from 'ionicons/icons';
 import './MapWidget.css';
@@ -18,6 +20,7 @@ import { useDevice } from "../context/DeviceContext";
 import { ProfileData } from '../types';
 import { EmergencyAlertRequest } from '../api/interface';
 import { sendEmergencyAlertFromMap } from '../services/emergencyService';
+import { startLocationTracking, stopLocationTracking, getTrackingStatus, LocationTrackingData } from '../services/locationTrackingService';
 
 const MapWidget: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -35,10 +38,12 @@ const MapWidget: React.FC = () => {
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
   const [profileReady, setProfileReady] = useState(false);
 
-  /* ----- NUEVO ESTADO PARA EL USER ID ----- */
+  // Estados para tracking de ubicación
+  const [isTrackingActive, setIsTrackingActive] = useState(false);
+  const [trackingLogs, setTrackingLogs] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
-  /* ----- CONTEXTO DEL DISPOSITIVO (para obtener deviceId) ----- */
+  // Contexto del dispositivo (para obtener deviceId)
   const { deviceId } = useDevice();  
   /* --------------------------------------------------------------
       1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
@@ -183,6 +188,12 @@ const MapWidget: React.FC = () => {
           setError(null); // Limpiar errores
           initMap(location);
           getAddressFromCoordinates(location);
+          
+          // 🚀 INICIAR TRACKING AUTOMÁTICAMENTE cuando se obtenga la ubicación
+          if (deviceId && !isTrackingActive) {
+            startTrackingAutomatically();
+          }
+          
           resolve();
         },
         (error) => {
@@ -367,6 +378,49 @@ const MapWidget: React.FC = () => {
     }
   };
 
+  // Funciones para tracking de ubicación automático (sin botones)
+  const startTrackingAutomatically = async () => {
+    if (!deviceId) {
+      console.log('❌ No hay device ID disponible para tracking automático');
+      return;
+    }
+
+    try {
+      console.log('🌍 Iniciando tracking automático cada 5 segundos...');
+      
+      await startLocationTracking(deviceId, {
+        onLocationUpdate: (data: LocationTrackingData) => {
+          const timeStamp = new Date().toLocaleTimeString();
+          const logMessage = `${timeStamp} - ✅ Enviado: ${data.latitud.substring(0,8)}, ${data.longitud.substring(0,9)}`;
+          setTrackingLogs(prev => [logMessage, ...prev.slice(0, 4)]);
+          console.log('📍 Ubicación enviada al backend:', logMessage);
+        },
+        onError: (error: string) => {
+          console.error('❌ Error de tracking automático:', error);
+          const timeStamp = new Date().toLocaleTimeString();
+          const logMessage = `${timeStamp} - ❌ Error: ${error.substring(0,30)}...`;
+          setTrackingLogs(prev => [logMessage, ...prev.slice(0, 4)]);
+        }
+      });
+      
+      setIsTrackingActive(true);
+      console.log('✅ Tracking automático iniciado correctamente');
+      
+    } catch (error) {
+      console.error('❌ Error iniciando tracking automático:', error);
+    }
+  };
+
+  // Cleanup: detener tracking cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (isTrackingActive) {
+        stopLocationTracking();
+        console.log('� Tracking detenido al desmontar componente');
+      }
+    };
+  }, [isTrackingActive]);
+
   return (
     <IonCard className="map-widget-card">
       <IonCardHeader>
@@ -477,6 +531,43 @@ const MapWidget: React.FC = () => {
                 <IonIcon icon={refreshOutline} slot="start" />
                 Actualizar Ubicación
               </IonButton>
+
+              {/* 📍 LOGS DE TRACKING AUTOMÁTICO (sin botones) */}
+              {trackingLogs.length > 0 && (
+                <div style={{ 
+                  marginTop: '16px',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--ion-color-light, #f8f9fa)',
+                  border: '1px solid var(--ion-color-medium, #92949c)'
+                }}>
+                  <IonText color="medium">
+                    <p style={{ margin: '0 0 6px 0', fontWeight: '500', fontSize: '12px' }}>
+                      📍 Tracking Automático Activo
+                    </p>
+                  </IonText>
+                  
+                  <div style={{
+                    maxHeight: '70px',
+                    overflowY: 'auto',
+                    backgroundColor: 'white',
+                    borderRadius: '4px',
+                    padding: '4px',
+                    fontSize: '9px',
+                    fontFamily: 'monospace'
+                  }}>
+                    {trackingLogs.map((log, index) => (
+                      <div key={index} style={{ 
+                        padding: '1px 0', 
+                        color: log.includes('❌') ? '#dc3545' : '#28a745',
+                        opacity: index === 0 ? 1 : 0.7
+                      }}>
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

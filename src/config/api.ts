@@ -29,6 +29,11 @@ export const API_ENDPOINTS = {
   alerts: {
     save: '/w/alerts/save', // PUT /w/alerts/save
   },
+  
+  // Location Tracking (nuevo endpoint para tracking)
+  locationTracking: {
+    save: '/w/location/track', // POST /w/location/track
+  },
 };
 
 // Request timeout (in milliseconds)
