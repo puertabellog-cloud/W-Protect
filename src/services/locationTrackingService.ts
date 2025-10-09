@@ -1,10 +1,12 @@
 /**
  * Servicio de Tracking de Ubicación
  * Envía la ubicación cada 5 segundos al backend
+ * Compatible con iOS y Android
  */
 
 import { Geolocation } from '@capacitor/geolocation';
 import { saveLocationTracking } from './springBootServices';
+import { Capacitor } from '@capacitor/core';
 
 export interface LocationTrackingData {
   deviceId: string;
@@ -36,24 +38,16 @@ class LocationTrackingService {
     try {
       console.log('🌍 Iniciando tracking de ubicación cada 5 segundos...');
       console.log('📱 Device ID:', deviceId);
+      console.log('📱 Platform:', Capacitor.getPlatform());
       
       this.deviceId = deviceId;
       this.onLocationUpdate = callbacks?.onLocationUpdate;
       this.onError = callbacks?.onError;
       
-      // Verificar permisos
-      const permissions = await Geolocation.checkPermissions();
+      // Verificar permisos dependiendo de la plataforma
+      await this.checkPermissions();
       
-      if (permissions.location !== 'granted') {
-        console.log('🔐 Solicitando permisos de ubicación...');
-        const requestResult = await Geolocation.requestPermissions();
-        
-        if (requestResult.location !== 'granted') {
-          throw new Error('Permisos de ubicación denegados');
-        }
-      }
-      
-      console.log('✅ Permisos de ubicación concedidos');
+      console.log('✅ Permisos de ubicación verificados');
       
       // Obtener ubicación inicial
       await this.getLocationAndSend();
@@ -71,30 +65,73 @@ class LocationTrackingService {
   }
 
   /**
+   * Verificar permisos según la plataforma
+   */
+  private async checkPermissions(): Promise<void> {
+    const platform = Capacitor.getPlatform();
+    
+    if (platform === 'web') {
+      // En web, usar API del navegador
+      if (!navigator.geolocation) {
+        throw new Error('Geolocalización no soportada en este navegador');
+      }
+      
+      // Verificar permisos en web
+      if ('permissions' in navigator) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+          if (permission.state === 'denied') {
+            throw new Error('Permisos de ubicación denegados en el navegador');
+          }
+        } catch (err) {
+          console.log('API de permisos no disponible, continuando...');
+        }
+      }
+      
+    } else {
+      // En iOS/Android, usar Capacitor
+      try {
+        const permissions = await Geolocation.checkPermissions();
+        
+        if (permissions.location !== 'granted') {
+          console.log('🔐 Solicitando permisos de ubicación...');
+          const requestResult = await Geolocation.requestPermissions();
+          
+          if (requestResult.location !== 'granted') {
+            throw new Error('Permisos de ubicación denegados');
+          }
+        }
+      } catch (error) {
+        console.log('❌ Error con Capacitor Geolocation, usando API nativa del navegador');
+        // Fallback a API nativa si Capacitor falla
+        if (!navigator.geolocation) {
+          throw new Error('Geolocalización no disponible');
+        }
+      }
+    }
+  }
+
+  /**
    * Obtener ubicación actual y enviar al backend
    */
   private async getLocationAndSend(): Promise<void> {
     try {
       console.log('📍 Obteniendo ubicación...');
       
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 8000,
-        maximumAge: 5000
-      });
+      const position = await this.getCurrentPosition();
 
       const locationData: LocationTrackingData = {
         deviceId: this.deviceId!,
-        latitud: position.coords.latitude.toString(),
-        longitud: position.coords.longitude.toString(),
+        latitud: position.lat.toString(),
+        longitud: position.lng.toString(),
         timestamp: new Date().toISOString(),
-        accuracy: position.coords.accuracy || undefined
+        accuracy: position.accuracy || undefined
       };
 
       console.log('📍 Ubicación obtenida:', {
-        lat: position.coords.latitude.toFixed(6),
-        lng: position.coords.longitude.toFixed(6),
-        accuracy: `${position.coords.accuracy}m`,
+        lat: position.lat.toFixed(6),
+        lng: position.lng.toFixed(6),
+        accuracy: `${position.accuracy}m`,
         time: new Date().toLocaleTimeString()
       });
 
@@ -108,6 +145,66 @@ class LocationTrackingService {
       console.error('❌ Error obteniendo/enviando ubicación:', error);
       this.onError?.(`Error de ubicación: ${error}`);
     }
+  }
+
+  /**
+   * Obtener posición actual usando la mejor API disponible
+   */
+  private async getCurrentPosition(): Promise<{lat: number, lng: number, accuracy: number}> {
+    const platform = Capacitor.getPlatform();
+    
+    // Intentar primero con API nativa del navegador (más confiable en iOS)
+    if (navigator.geolocation) {
+      try {
+        console.log('📍 Usando API nativa del navegador...');
+        
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            {
+              enableHighAccuracy: true,
+              timeout: 8000,
+              maximumAge: 5000
+            }
+          );
+        });
+
+        return {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy || 0
+        };
+        
+      } catch (error) {
+        console.log('❌ Error con API nativa, intentando Capacitor...');
+      }
+    }
+    
+    // Fallback a Capacitor (solo si API nativa falla)
+    if (platform !== 'web') {
+      try {
+        console.log('📍 Usando Capacitor Geolocation...');
+        
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 5000
+        });
+
+        return {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy || 0
+        };
+        
+      } catch (error) {
+        console.error('❌ Error con Capacitor Geolocation:', error);
+        throw new Error('No se pudo obtener ubicación con ningún método');
+      }
+    }
+    
+    throw new Error('Geolocalización no disponible');
   }
 
   /**
@@ -150,7 +247,8 @@ class LocationTrackingService {
     return {
       isRunning: this.isRunning,
       deviceId: this.deviceId,
-      updateInterval: this.UPDATE_INTERVAL
+      updateInterval: this.UPDATE_INTERVAL,
+      platform: Capacitor.getPlatform()
     };
   }
 }

@@ -388,10 +388,16 @@ const MapWidget: React.FC = () => {
     try {
       console.log('🌍 Iniciando tracking automático cada 5 segundos...');
       
+      // Obtener información del estado de tracking
+      const status = getTrackingStatus();
+      const timeStamp = new Date().toLocaleTimeString();
+      const platformInfo = `${timeStamp} - 📱 Plataforma: ${status.platform} | Intervalo: ${status.updateInterval/1000}s`;
+      setTrackingLogs(prev => [platformInfo, ...prev.slice(0, 4)]);
+      
       await startLocationTracking(deviceId, {
         onLocationUpdate: (data: LocationTrackingData) => {
           const timeStamp = new Date().toLocaleTimeString();
-          const logMessage = `${timeStamp} - ✅ Enviado: ${data.latitud.substring(0,8)}, ${data.longitud.substring(0,9)}`;
+          const logMessage = `${timeStamp} - ✅ Enviado: ${data.latitud.substring(0,8)}, ${data.longitud.substring(0,9)} (±${data.accuracy}m)`;
           setTrackingLogs(prev => [logMessage, ...prev.slice(0, 4)]);
           console.log('📍 Ubicación enviada al backend:', logMessage);
         },
@@ -406,8 +412,16 @@ const MapWidget: React.FC = () => {
       setIsTrackingActive(true);
       console.log('✅ Tracking automático iniciado correctamente');
       
+      // Log de inicio
+      const startTime = new Date().toLocaleTimeString();
+      const startMessage = `${startTime} - 🚀 Tracking iniciado automáticamente`;
+      setTrackingLogs(prev => [startMessage, ...prev.slice(0, 4)]);
+      
     } catch (error) {
       console.error('❌ Error iniciando tracking automático:', error);
+      const timeStamp = new Date().toLocaleTimeString();
+      const errorMessage = `${timeStamp} - ❌ Error iniciando tracking: ${error}`;
+      setTrackingLogs(prev => [errorMessage, ...prev.slice(0, 4)]);
     }
   };
 
