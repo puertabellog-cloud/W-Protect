@@ -30,8 +30,8 @@ const Home: React.FC = () => {
 
     const handleFeatureSelect = (feature: string) => {
         if (feature === 'experiencias') {
-            // Navegar al foro de historias
-            history.push('/foro');
+            // Navegar a la biblioteca de recursos
+            history.push('/recursos');
         } else {
             // Para location y otras features, mostrar en el dashboard
             setCurrentScreen(feature as AppScreen);
@@ -58,7 +58,7 @@ const Home: React.FC = () => {
             case 'location':
                 return <LocationScreen onBack={handleBackToDashboard} />;
             case 'experiencias':
-                // Este caso no debería ejecutarse ya que navegamos directamente al foro
+                // Este caso no debería ejecutarse ya que navegamos directamente a recursos
                 return <ComingSoonScreen feature="Experiencias" onBack={handleBackToDashboard} />;
             case 'resources':
                 return <Resources onArticleSelect={handleArticleSelect} onBack={handleBackToDashboard} />;

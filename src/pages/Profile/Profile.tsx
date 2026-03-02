@@ -44,7 +44,6 @@ import {
   logOutOutline
 } from 'ionicons/icons';
 import { useDevice } from "../../context/DeviceContext";
-import { forumService } from '../../services/forumService';
 
 const Profile: React.FC = () => {
     const history = useHistory();
@@ -125,14 +124,9 @@ const Profile: React.FC = () => {
                 
                 // Cargar estadísticas del usuario
                 try {
-                    const stories = await forumService.getStories();
-                    const userStories = stories.filter((story: any) => story.usuario === data.name);
-                    const commentsCount = stories.reduce((total: number, story: any) => 
-                        total + story.comentarios.filter((comment: any) => comment.usuario === data.name).length, 0
-                    );
-                    
+                    // Estadísticas básicas sin dependencias del foro
                     setUserStats({
-                        forumsParticipated: userStories.length + commentsCount,
+                        forumsParticipated: 0, // Sin foro
                         articlesRead: parseInt(localStorage.getItem('w-protect-articles-read') || '0'),
                         daysActive: Math.floor((Date.now() - new Date(data.fechaRegistro || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) || 1
                     });

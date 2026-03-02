@@ -1,5 +1,5 @@
 import { EmergencyContact, EmergencyAlertRequest, EmergencyAlertResponse, ProfileData } from './interface';
-
+import { apiClient } from './apiClient';
 
 class BackendService {
     private baseUrl: string;
@@ -40,11 +40,8 @@ class BackendService {
     // Obtener contactos de emergencia del usuario
     async getEmergencyContacts(userId: number): Promise<EmergencyContact[]> {
         try {
-            const response = await fetch(`${this.baseUrl}w/contacts/user/${userId}`, {
-                method: 'GET',
-            });
-
-            return await this.handleResponse<EmergencyContact[]>(response);
+            const response = await apiClient.get<EmergencyContact[]>(`/w/contacts/user/${userId}`);
+            return response.data;
         } catch (error) {
             console.error('Error obteniendo contactos de emergencia:', error);
             throw error;
@@ -54,15 +51,8 @@ class BackendService {
     // Actualizar un contacto de emergencia
     async updateEmergencyContact(updates: Partial<EmergencyContact>): Promise<EmergencyContact> {
         try {
-            const response = await fetch(`${this.baseUrl}w/contacts/save`, {
-                method: 'PUT',
-                body: JSON.stringify(updates),
-                headers: {
-                'Content-Type': 'application/json',   // <‑‑ esencial
-                },
-            });
-
-            return await this.handleResponse<EmergencyContact>(response);
+            const response = await apiClient.put<EmergencyContact>(`/w/contacts/save`, updates);
+            return response.data;
         } catch (error) {
             console.error('Error actualizando contacto de emergencia:', error);
             throw error;

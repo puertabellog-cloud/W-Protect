@@ -18,6 +18,7 @@ import { getContactsByUserId, saveContact, deleteContact as deleteContactService
 import { getUserByDeviceId } from '../../services/springBootServices';
 import { Contact, User } from '../../types';
 import { useDevice } from "../../context/DeviceContext";
+import { apiClient } from '../../api/apiClient';
 
 // Tipos específicos para este componente
 interface ContactFromDevice {
@@ -70,18 +71,17 @@ const ContactsPage: React.FC = () => {
 
     const fetchCurrentUser = async () => {
       try {
-        // Llamada al backend usando la nueva estructura
-        const profile: User = await getUserByDeviceId(deviceId);
+        const response = await apiClient.get<User>(`/users/device/${deviceId}`);
+        const profile = response.data;
         console.log("Perfil obtenido:", profile);
-        // El id del usuario está en profile.id
         if (profile && typeof profile.id === 'number') {
           setCurrentUserId(profile.id);
           setProfileReady(true);
         } else {
-          console.warn('El perfil recibido no contiene un id numérico', profile);
+          console.warn("Perfil inválido o no encontrado.");
         }
-      } catch (err) {
-        console.error('No se pudo obtener el perfil del usuario', err);
+      } catch (error) {
+        console.error("Error obteniendo el perfil del usuario:", error);
       }
     };
 
@@ -776,7 +776,7 @@ const ContactsPage: React.FC = () => {
           <h2 className="welcome-title">Mis Contactos de Emergencia</h2>
           <p className="welcome-subtitle">
             Agrega hasta 5 personas de confianza que serán notificadas automáticamente si te encuentras en peligro. 
-            Recibirán tu ubicación exacta por WhatsApp para poder ayudarte rápidamente.
+            Recibirán tu ubicación exacta por mensaje de texto para poder ayudarte rápidamente.
           </p>
         </div>
 

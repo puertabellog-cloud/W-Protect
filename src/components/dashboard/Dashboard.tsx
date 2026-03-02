@@ -35,8 +35,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     },
     {
       id: 'experiencias',
-      title: 'Experiencias',
-      description: 'Historias de esperanza y superación',
+      title: 'Biblioteca de Recursos',
+      description: 'Artículos, guías y herramientas útiles',
       icon: chatbubblesOutline,
       color: '#a855f7'
     },

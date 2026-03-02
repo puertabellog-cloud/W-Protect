@@ -1,6 +1,7 @@
 import emailjs from '@emailjs/browser';
 import { EMAIL_CONFIG, getEmailTemplate } from '../config/emailConfig';
 import { sendEmailViaWeb3Forms } from './alternativeEmailService';
+import { apiClient } from '../api/apiClient';
 
 // Inicializar EmailJS con configuración
 emailjs.init(EMAIL_CONFIG.PUBLIC_KEY);
@@ -30,26 +31,19 @@ export const sendWelcomeEmail = async (userName: string, userEmail: string): Pro
     try {
       console.log('� Intentando método fallback...');
       
-      // Método fallback usando fetch directo
-      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          service_id: EMAIL_CONFIG.SERVICE_ID,
-          template_id: EMAIL_CONFIG.TEMPLATE_ID,
-          user_id: EMAIL_CONFIG.PUBLIC_KEY,
-          template_params: {
-            to_email: userEmail,
-            to_name: userName,
-            from_name: 'W-Protect Team',
-            message: `¡Hola ${userName}! Gracias por hacer parte de la familia W-Protect! 💗`
-          }
-        })
+      const response = await apiClient.post('https://api.emailjs.com/api/v1.0/email/send', {
+        service_id: EMAIL_CONFIG.SERVICE_ID,
+        template_id: EMAIL_CONFIG.TEMPLATE_ID,
+        user_id: EMAIL_CONFIG.PUBLIC_KEY,
+        template_params: {
+          to_email: userEmail,
+          to_name: userName,
+          from_name: 'W-Protect Team',
+          message: `¡Hola ${userName}! Gracias por hacer parte de la familia W-Protect! 💗`
+        }
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         console.log('✅ Email enviado via fallback');
         return true;
       }

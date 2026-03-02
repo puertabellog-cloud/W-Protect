@@ -15,10 +15,8 @@ import { home, peopleOutline, personOutline, libraryOutline } from 'ionicons/ico
 import Contacts from './pages/Contacts/Contacts';
 import Profile from './pages/Profile/Profile';
 import PerfilUsuaria from './pages/Profile/PerfilUsuaria';
-import Foro from './pages/Foro/Foro';
-import HistoriaIndividual from './pages/Foro/HistoriaIndividual';
-import NuevaHistoria from './pages/Foro/NuevaHistoria';
-import GoogleMap from './components/GoogleMap';
+import { Resources } from './pages/Resources';
+import MapWidget from './components/MapWidget';
 import { AuthWrapper } from './components/AuthWrapper';
 
 /* Los estilos de Ionic ya están importados en main.tsx */
@@ -42,19 +40,9 @@ const App: React.FC = () => (
                 <Contacts />
               </AuthWrapper>
             </Route>
-            <Route exact path="/foro">
+            <Route exact path="/recursos">
               <AuthWrapper>
-                <Foro />
-              </AuthWrapper>
-            </Route>
-            <Route exact path="/foro/historia/:storyId">
-              <AuthWrapper>
-                <HistoriaIndividual />
-              </AuthWrapper>
-            </Route>
-            <Route exact path="/foro/nueva-historia">
-              <AuthWrapper>
-                <NuevaHistoria />
+                <Resources onArticleSelect={() => {}} />
               </AuthWrapper>
             </Route>
             <Route exact path="/profile">
@@ -69,7 +57,7 @@ const App: React.FC = () => (
             </Route>
             <Route exact path="/mapa">
               <AuthWrapper>
-                <GoogleMap />
+                <MapWidget />
               </AuthWrapper>
             </Route>
             <Route exact path="/">
@@ -85,9 +73,9 @@ const App: React.FC = () => (
               <IonIcon aria-hidden="true" icon={peopleOutline} />
               <IonLabel>Contactos</IonLabel>
             </IonTabButton>
-            <IonTabButton tab="foro" href="/foro">
+            <IonTabButton tab="recursos" href="/recursos">
               <IonIcon aria-hidden="true" icon={libraryOutline} />
-              <IonLabel>Historias</IonLabel>
+              <IonLabel>Recursos</IonLabel>
             </IonTabButton>
             <IonTabButton tab="profile" href="/profile">
               <IonIcon aria-hidden="true" icon={personOutline} />

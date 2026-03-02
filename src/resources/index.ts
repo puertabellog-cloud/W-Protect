@@ -359,7 +359,7 @@ export const todosLosArticulos: Article[] = [
         <h3 style="color: #7c2d92; margin-top: 25px;">📍 Ubicación y Rastreo</h3>
         <ul style="margin-left: 20px; margin-bottom: 20px;">
           <li><strong>Encuentra Mi iPhone/Android:</strong> Para localizar tu dispositivo</li>
-          <li><strong>Google Maps:</strong> Compartir ubicación en tiempo real</li>
+          <li><strong>Apps de mapas:</strong> Compartir ubicación en tiempo real</li>
           <li><strong>Life360:</strong> Para familias - círculos de ubicación</li>
           <li><strong>Glympse:</strong> Compartir ubicación temporal</li>
         </ul>

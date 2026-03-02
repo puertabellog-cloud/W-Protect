@@ -1,11 +1,10 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.wprotect.app', // ✅ Cambiar por un ID único
+  appId: 'com.wprotect.app',
   appName: 'W-Protect',
   webDir: 'dist',
   server: {
-    // ✅ Permitir acceso a APIs externas desde el dispositivo
     allowNavigation: ['https://goldfish-app-h7qp9.ondigitalocean.app']
   },
   plugins: {
@@ -13,10 +12,14 @@ const config: CapacitorConfig = {
       permissions: ['location', 'coarseLocation'],
       enableHighAccuracy: true
     },
-    // ✅ Configuración para contactos
     Contacts: {
       permissions: ['contacts']
     }
+  },
+  // Solo Android - no iOS
+  android: {
+    allowMixedContent: true,
+    captureInput: true
   }
 };
 

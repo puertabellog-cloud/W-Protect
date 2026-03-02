@@ -47,7 +47,7 @@ import { todosLosArticulos, categorias, obtenerArticulosPorCategoria, obtenerArt
 import { Article } from '../../api/interface.js';
 
 interface ResourcesProps {
-  onArticleSelect: (articleId: string) => void;
+  onArticleSelect?: (articleId: string) => void;
   onBack?: () => void;
 }
 
@@ -254,7 +254,7 @@ export const Resources: React.FC<ResourcesProps> = ({ onArticleSelect, onBack })
               <IonCard 
                 key={article.id} 
                 button 
-                onClick={() => onArticleSelect(article.id)}
+                onClick={() => onArticleSelect?.(article.id)}
                 style={{ 
                   marginBottom: '16px', 
                   borderRadius: '16px',

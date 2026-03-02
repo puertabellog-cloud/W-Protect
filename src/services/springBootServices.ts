@@ -120,10 +120,24 @@ export const saveLocationTracking = async (locationData: {
 }): Promise<void> => {
   try {
     console.log('📍 Enviando tracking de ubicación:', locationData);
+    
+    // En desarrollo sin backend, solo hacer log
+    if (import.meta.env.VITE_ENV === 'development' && API_URL.includes('localhost')) {
+      console.log('🔧 Modo desarrollo - simulando envío de tracking');
+      return;
+    }
+    
     await apiClient.post(API_ENDPOINTS.locationTracking.save, locationData);
     console.log('✅ Tracking de ubicación enviado exitosamente');
   } catch (error) {
     console.error('❌ Error enviando tracking de ubicación:', error);
+    
+    // En desarrollo, solo hacer log del error, no lanzar excepción
+    if (import.meta.env.VITE_ENV === 'development') {
+      console.log('🔧 Modo desarrollo - ignorando error de backend');
+      return;
+    }
+    
     throw new Error('Error enviando tracking de ubicación');
   }
 };
