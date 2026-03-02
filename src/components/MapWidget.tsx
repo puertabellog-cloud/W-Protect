@@ -14,16 +14,28 @@ import {
   IonLabel
 } from '@ionic/react';
 import { locationOutline, shareOutline, refreshOutline } from 'ionicons/icons';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './MapWidget.css';
 import { backendService } from '../api/backend';
 import { useDevice } from "../context/DeviceContext";
 import { ProfileData } from '../types';
 import { EmergencyAlertRequest } from '../api/interface';
 import { sendEmergencyAlertFromMap } from '../services/emergencyService';
-import { startLocationTracking, stopLocationTracking, getTrackingStatus, LocationTrackingData } from '../services/locationTrackingService';
+import { startLocationTracking, stopLocationTracking, LocationTrackingData } from '../services/locationTrackingService';
+
+// Configurar iconos por defecto de Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 const MapWidget: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const markerInstance = useRef<L.Marker | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -55,7 +67,7 @@ const MapWidget: React.FC = () => {
     const fetchCurrentUser = async () => {
       try {
         // Llamada al backend (el método devuelve ProfileData)
-        const profile: ProfileData = await backendService.getProfile(deviceId);
+        const profile: ProfileData = await backendService.getProfile('defaultArgument');
         console.log("Perfil obtenido:", profile);
         // Supongamos que el id del usuario está en profile.id (ajusta si tu campo tiene otro nombre)
         if (profile && typeof profile.id === 'number') {
@@ -72,11 +84,11 @@ const MapWidget: React.FC = () => {
     };
 
     fetchCurrentUser();
-  }, [deviceId]);   // Se vuelve a ejecutar sólo si cambia el deviceId
+  }, []);   // Se vuelve a ejecutar sólo si cambia el deviceId
 
   useEffect(() => {
     loadUserName();
-    loadGoogleMaps();
+    initializeMap();
   }, []);
 
   const loadUserName = () => {
@@ -101,46 +113,12 @@ const MapWidget: React.FC = () => {
     }
   };
 
-  const loadGoogleMapsScript = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (window.google?.maps?.Map) {
-        resolve();
-        return;
-      }
-
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) {
-        existingScript.addEventListener('load', () => resolve());
-        existingScript.addEventListener('error', () => reject(new Error('Error cargando Google Maps')));
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyA0EmWI8u92HIwlTATFM1IVSRi4lc6iHAg&libraries=geometry,places`;
-      script.async = true;
-      script.defer = true;
-      
-      script.onload = () => {
-        if (window.google?.maps?.Map) {
-          resolve();
-        } else {
-          reject(new Error('Google Maps no se cargó correctamente'));
-        }
-      };
-      script.onerror = () => reject(new Error('Error cargando Google Maps'));
-      
-      document.head.appendChild(script);
-    });
-  };
-
-  const loadGoogleMaps = async () => {
+  const initializeMap = async () => {
     try {
-      if (!window.google) {
-        await loadGoogleMapsScript();
-      }
+      console.log('🗺️ Inicializando mapa con Leaflet...');
       await getCurrentLocation();
     } catch (err) {
-      console.error('Error cargando Google Maps:', err);
+      console.error('❌ Error inicializando mapa:', err);
       setError('Error al cargar el mapa');
       setLoading(false);
     }
@@ -190,7 +168,7 @@ const MapWidget: React.FC = () => {
           getAddressFromCoordinates(location);
           
           // 🚀 INICIAR TRACKING AUTOMÁTICAMENTE cuando se obtenga la ubicación
-          if (deviceId && !isTrackingActive) {
+          if (!isTrackingActive) {
             startTrackingAutomatically();
           }
           
@@ -233,56 +211,155 @@ const MapWidget: React.FC = () => {
 
   const getAddressFromCoordinates = async (location: {lat: number, lng: number}) => {
     try {
-      // Por ahora usar coordenadas, después implementaremos geocoding
+      // Usar servicio de geocodificación gratuito de OpenStreetMap Nominatim
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}&zoom=18&addressdetails=1`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.display_name) {
+          console.log('📍 Dirección obtenida:', data.display_name);
+          setAddress(data.display_name);
+          return;
+        }
+      }
+      
+      // Fallback a coordenadas si no se puede obtener dirección
       setAddress(`Coordenadas: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
     } catch (error) {
-      setAddress(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
+      console.log('Error obteniendo dirección, usando coordenadas:', error);
+      setAddress(`Coordenadas: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
     }
   };
 
   const initMap = (location: {lat: number, lng: number}) => {
     try {
-      if (!mapRef.current || !window.google?.maps?.Map) {
-        setError('Google Maps no está disponible');
+      if (!mapRef.current) {
+        setError('Contenedor del mapa no disponible');
         setLoading(false);
         return;
       }
 
-      mapRef.current.innerHTML = '';
+      // Limpiar mapa anterior si existe
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
 
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: location,
-        zoom: 16,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
+      console.log('🗺️ Creando mapa con Leaflet en:', location);
+      
+      // Asegurar que el contenedor tenga dimensiones
+      mapRef.current.style.height = '300px';
+      mapRef.current.style.width = '100%';
+      mapRef.current.style.borderRadius = '12px';
+      mapRef.current.style.overflow = 'hidden';
+      mapRef.current.style.border = '2px solid #e0e0e0';
+      mapRef.current.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      
+      // Crear nuevo mapa con Leaflet
+      const map = L.map(mapRef.current, {
+        center: [location.lat, location.lng],
+        zoom: 17, // Zoom más alto para mejor detalle
         zoomControl: true,
-        gestureHandling: 'greedy',
-        styles: [
-          {
-            featureType: 'poi',
-            stylers: [{ visibility: 'simplified' }]
-          }
-        ]
+        attributionControl: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        dragging: true
       });
 
-      const marker = new window.google.maps.Marker({
-        position: location,
-        map: map,
-        title: 'Tu ubicación actual',
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#ff4081',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 3
-        }
+      // Usar tiles de CartoDB para mejor calidad visual
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      // Crear marcador personalizado más bonito
+      const customIcon = L.divIcon({
+        className: 'custom-location-marker',
+        html: `
+          <div style="
+            position: relative;
+            width: 32px;
+            height: 32px;
+          ">
+            <div style="
+              background: linear-gradient(135deg, #ff4081, #ff6ec7);
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              border: 4px solid white;
+              box-shadow: 0 4px 12px rgba(255, 64, 129, 0.4);
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              animation: pulse 2s infinite;
+            "></div>
+            <div style="
+              background: rgba(255, 64, 129, 0.3);
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              animation: ripple 2s infinite;
+            "></div>
+          </div>
+          <style>
+            @keyframes pulse {
+              0% { transform: translate(-50%, -50%) scale(1); }
+              50% { transform: translate(-50%, -50%) scale(1.1); }
+              100% { transform: translate(-50%, -50%) scale(1); }
+            }
+            @keyframes ripple {
+              0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+              100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+            }
+          </style>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
 
+      // Crear marcador
+      const marker = L.marker([location.lat, location.lng], { 
+        icon: customIcon,
+        title: 'Tu ubicación actual'
+      }).addTo(map);
+
+      // Añadir popup al marcador
+      marker.bindPopup(`
+        <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <strong style="color: #ff4081;">📍 Tu ubicación actual</strong><br/>
+          <small style="color: #666;">Lat: ${location.lat.toFixed(6)}<br/>
+          Lng: ${location.lng.toFixed(6)}</small>
+        </div>
+      `, {
+        closeButton: false,
+        autoClose: false,
+        closeOnClick: false,
+        className: 'custom-popup'
+      });
+
+      // Guardar referencias
+      mapInstance.current = map;
+      markerInstance.current = marker;
+
+      // Ajustar el mapa después de un momento para asegurar renderizado correcto
+      setTimeout(() => {
+        map.invalidateSize();
+        console.log('✅ Mapa de Leaflet ajustado y optimizado');
+      }, 100);
+
+      console.log('✅ Mapa de Leaflet creado exitosamente');
       setLoading(false);
+      
     } catch (err) {
-      console.error('Error inicializando mapa:', err);
+      console.error('❌ Error inicializando mapa con Leaflet:', err);
       setError('Error al cargar el mapa');
       setLoading(false);
     }
@@ -321,6 +398,20 @@ const MapWidget: React.FC = () => {
   const refreshLocation = () => {
     setLoading(true);
     setError(null);
+    
+    // Limpiar mapa anterior si existe
+    if (mapInstance.current) {
+      mapInstance.current.remove();
+      mapInstance.current = null;
+      markerInstance.current = null;
+    }
+    
+    // Limpiar el contenedor
+    if (mapRef.current) {
+      mapRef.current.innerHTML = '';
+      mapRef.current.style.height = '';
+    }
+    
     getCurrentLocation();
   };
 
@@ -380,57 +471,52 @@ const MapWidget: React.FC = () => {
 
   // Funciones para tracking de ubicación automático (sin botones)
   const startTrackingAutomatically = async () => {
-    if (!deviceId) {
-      console.log('❌ No hay device ID disponible para tracking automático');
-      return;
-    }
-
     try {
       console.log('🌍 Iniciando tracking automático cada 5 segundos...');
-      
-      // Obtener información del estado de tracking
-      const status = getTrackingStatus();
-      const timeStamp = new Date().toLocaleTimeString();
-      const platformInfo = `${timeStamp} - 📱 Plataforma: ${status.platform} | Intervalo: ${status.updateInterval/1000}s`;
-      setTrackingLogs(prev => [platformInfo, ...prev.slice(0, 4)]);
-      
-      await startLocationTracking(deviceId, {
+
+      await startLocationTracking(5000, {
         onLocationUpdate: (data: LocationTrackingData) => {
           const timeStamp = new Date().toLocaleTimeString();
-          const logMessage = `${timeStamp} - ✅ Enviado: ${data.latitud.substring(0,8)}, ${data.longitud.substring(0,9)} (±${data.accuracy}m)`;
-          setTrackingLogs(prev => [logMessage, ...prev.slice(0, 4)]);
+          const logMessage = `${timeStamp} - ✅ Enviado: ${data.latitud.toFixed(8)}, ${data.longitud.toFixed(9)} (±${data.accuracy}m)`;
+          setTrackingLogs((prev) => [logMessage, ...prev.slice(0, 4)]);
           console.log('📍 Ubicación enviada al backend:', logMessage);
         },
         onError: (error: string) => {
           console.error('❌ Error de tracking automático:', error);
           const timeStamp = new Date().toLocaleTimeString();
-          const logMessage = `${timeStamp} - ❌ Error: ${error.substring(0,30)}...`;
-          setTrackingLogs(prev => [logMessage, ...prev.slice(0, 4)]);
-        }
+          const logMessage = `${timeStamp} - ❌ Error: ${error.substring(0, 30)}...`;
+          setTrackingLogs((prev) => [logMessage, ...prev.slice(0, 4)]);
+        },
       });
-      
+
       setIsTrackingActive(true);
       console.log('✅ Tracking automático iniciado correctamente');
-      
-      // Log de inicio
+
       const startTime = new Date().toLocaleTimeString();
       const startMessage = `${startTime} - 🚀 Tracking iniciado automáticamente`;
-      setTrackingLogs(prev => [startMessage, ...prev.slice(0, 4)]);
-      
+      setTrackingLogs((prev) => [startMessage, ...prev.slice(0, 4)]);
     } catch (error) {
       console.error('❌ Error iniciando tracking automático:', error);
       const timeStamp = new Date().toLocaleTimeString();
       const errorMessage = `${timeStamp} - ❌ Error iniciando tracking: ${error}`;
-      setTrackingLogs(prev => [errorMessage, ...prev.slice(0, 4)]);
+      setTrackingLogs((prev) => [errorMessage, ...prev.slice(0, 4)]);
     }
   };
 
-  // Cleanup: detener tracking cuando el componente se desmonte
+  // Cleanup: detener tracking y limpiar mapa cuando el componente se desmonte
   useEffect(() => {
     return () => {
       if (isTrackingActive) {
         stopLocationTracking();
-        console.log('� Tracking detenido al desmontar componente');
+        console.log('🛑 Tracking detenido al desmontar componente');
+      }
+      
+      // Limpiar mapa de Leaflet
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+        markerInstance.current = null;
+        console.log('🗺️ Mapa de Leaflet limpiado al desmontar componente');
       }
     };
   }, [isTrackingActive]);
@@ -447,18 +533,33 @@ const MapWidget: React.FC = () => {
       <IonCardContent>
         <div className="map-container-widget">
           {loading && (
-            <div className="map-loading-widget">
-              <IonSpinner name="crescent" />
-              <p>Obteniendo ubicación...</p>
+            <div className="map-loading-widget" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '300px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '12px',
+              border: '2px solid #e0e0e0'
+            }}>
+              <IonSpinner name="crescent" color="primary" style={{ transform: 'scale(1.2)' }} />
+              <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>Obteniendo ubicación...</p>
             </div>
           )}
           
           {error && (
-            <div className="map-error-widget">
+            <div className="map-error-widget" style={{
+              padding: '20px',
+              backgroundColor: '#ffebee',
+              borderRadius: '12px',
+              border: '2px solid #f44336',
+              textAlign: 'center'
+            }}>
               <IonText color="danger">
-                <p>{error}</p>
+                <p style={{ margin: '0 0 16px 0' }}>{error}</p>
               </IonText>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <IonButton fill="solid" size="small" onClick={requestLocationPermission}>
                   <IonIcon icon={locationOutline} slot="start" />
                   Habilitar Ubicación
@@ -474,7 +575,15 @@ const MapWidget: React.FC = () => {
           <div 
             ref={mapRef} 
             className="map-widget"
-            style={{ display: loading || error ? 'none' : 'block' }}
+            style={{ 
+              display: loading || error ? 'none' : 'block',
+              height: '300px',
+              width: '100%',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              position: 'relative',
+              zIndex: 1
+            }}
           />
         </div>
 
