@@ -5,6 +5,7 @@
 
 import { apiClient } from '../api/apiClient';
 import { API_ENDPOINTS } from '../config/api';
+import { API_URL } from "../config/api";
 import { User, Contact, Alert } from '../types';
 
 // === SERVICIOS DE USUARIO ===
