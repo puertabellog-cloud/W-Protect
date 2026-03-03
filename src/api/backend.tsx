@@ -6,7 +6,7 @@ class BackendService {
 
     constructor() {
         // Cambia esta URL por la de tu backend
-        this.baseUrl = 'https://goldfish-app-h7qp9.ondigitalocean.app/';
+        this.baseUrl = '/api/';
     }
 
     // Manejo genérico de errores

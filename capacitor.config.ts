@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'W-Protect',
   webDir: 'dist',
   server: {
-    allowNavigation: ['https://goldfish-app-h7qp9.ondigitalocean.app']
+    allowNavigation: ['/api/']
   },
   plugins: {
     Geolocation: {
