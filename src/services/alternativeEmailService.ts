@@ -1,22 +1,18 @@
 // Servicio alternativo para enviar emails usando Formspree (100% gratuito)
+import { apiClient } from '../api/apiClient';
+
 export const sendEmailViaFormspree = async (userName: string, userEmail: string) => {
   try {
-    const response = await fetch('https://formspree.io/f/wprotect-demo', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: userEmail,
-        name: userName,
-        subject: '¡Bienvenida a la familia W-Protect! 💗',
-        message: `Nueva usuaria registrada: ${userName} (${userEmail})`,
-        _replyto: userEmail,
-        _subject: `Bienvenida ${userName} a W-Protect`
-      })
+    const res = await apiClient.post('https://formspree.io/f/wprotect-demo', {
+      email: userEmail,
+      name: userName,
+      subject: '¡Bienvenida a la familia W-Protect! 💗',
+      message: `Nueva usuaria registrada: ${userName} (${userEmail})`,
+      _replyto: userEmail,
+      _subject: `Bienvenida ${userName} a W-Protect`
     });
 
-    return response.ok;
+    return res.status >= 200 && res.status < 300;
   } catch (error) {
     console.error('Error con Formspree:', error);
     return false;
@@ -46,12 +42,11 @@ Tu seguridad es nuestra prioridad. Ahora tienes acceso completo a todas las func
 
 El equipo de W-Protect 💗`);
 
-    const response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      body: formData
+    const res = await apiClient.post('https://api.web3forms.com/submit', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
 
-    return response.ok;
+    return res.status >= 200 && res.status < 300;
   } catch (error) {
     console.error('Error con Web3Forms:', error);
     return false;

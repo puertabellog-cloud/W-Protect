@@ -7,22 +7,12 @@ import {
   IonButton,
   IonIcon,
   IonText,
-  IonSpinner,
-  IonAlert,
-  IonToast,
-  IonChip,
-  IonLabel
+  IonSpinner
 } from '@ionic/react';
-import { locationOutline, shareOutline, refreshOutline } from 'ionicons/icons';
+import { locationOutline, refreshOutline } from 'ionicons/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './MapWidget.css';
-import { backendService } from '../api/backend';
-import { useDevice } from "../context/DeviceContext";
-import { ProfileData } from '../types';
-import { EmergencyAlertRequest } from '../api/interface';
-import { sendEmergencyAlertFromMap } from '../services/emergencyService';
-import { startLocationTracking, stopLocationTracking, LocationTrackingData } from '../services/locationTrackingService';
 
 // Configurar iconos por defecto de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -41,50 +31,6 @@ const MapWidget: React.FC = () => {
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [address, setAddress] = useState<string>('');
   const [userName, setUserName] = useState<string>('Usuario');
-  
-  // Estados para la alerta de emergencia
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isLoadingAlert, setIsLoadingAlert] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
-  const [profileReady, setProfileReady] = useState(false);
-
-  // Estados para tracking de ubicación
-  const [isTrackingActive, setIsTrackingActive] = useState(false);
-  const [trackingLogs, setTrackingLogs] = useState<string[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
-  // Contexto del dispositivo (para obtener deviceId)
-  const { deviceId } = useDevice();  
-  /* --------------------------------------------------------------
-      1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
-      -------------------------------------------------------------- */
-  useEffect(() => {
-    // Si no tienes todavía un deviceId, no intentes la llamada.
-    if (!deviceId) return;
-
-    const fetchCurrentUser = async () => {
-      try {
-        // Llamada al backend (el método devuelve ProfileData)
-        const profile: ProfileData = await backendService.getProfile('defaultArgument');
-        console.log("Perfil obtenido:", profile);
-        // Supongamos que el id del usuario está en profile.id (ajusta si tu campo tiene otro nombre)
-        if (profile && typeof profile.id === 'number') {
-          setCurrentUserId(profile.id);
-          setProfileReady(true);
-
-        } else {
-          console.warn('El perfil recibido no contiene un id numérico', profile);
-        }
-      } catch (err) {
-        console.error('No se pudo obtener el perfil del usuario', err);
-        // Opcional: muestra un toast o alerta para que el usuario sepa que algo falló
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);   // Se vuelve a ejecutar sólo si cambia el deviceId
 
   useEffect(() => {
     loadUserName();
@@ -166,11 +112,6 @@ const MapWidget: React.FC = () => {
           setError(null); // Limpiar errores
           initMap(location);
           getAddressFromCoordinates(location);
-          
-          // 🚀 INICIAR TRACKING AUTOMÁTICAMENTE cuando se obtenga la ubicación
-          if (!isTrackingActive) {
-            startTrackingAutomatically();
-          }
           
           resolve();
         },
@@ -415,102 +356,11 @@ const MapWidget: React.FC = () => {
     getCurrentLocation();
   };
 
-  // Funciones para la alerta de emergencia
-  const handleEmergencyClick = () => {
-    if (!currentLocation) {
-      setToastMessage('❌ No se puede enviar alerta sin ubicación');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-    setIsAlertOpen(true);
-  };
 
-  const sendEmergencyAlert = async () => {
-    if (!currentLocation) {
-      setToastMessage('❌ No se puede enviar alerta sin ubicación');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
 
-    if (currentUserId === null) {
-      setToastMessage('❌ No se pudo identificar al usuario');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    setIsLoadingAlert(true);
-    setIsAlertOpen(false);
-
-    try {
-      console.log('📍 Coordenadas originales de Google Maps:', currentLocation);
-      
-      // Usar el nuevo servicio que mapea correctamente las coordenadas
-      const result = await sendEmergencyAlertFromMap(
-        currentUserId,
-        'Necesito ayuda urgente',      // ✅ mensaje (no message)
-        currentLocation,               // { lat, lng } de Google Maps  
-        'GENERAL'
-      );
-
-      console.log('✅ Resultado del envío de alerta:', result);
-      setToastMessage(`✅ Alerta enviada exitosamente. ID: ${result.id}`);
-      setToastColor('success');
-      
-    } catch (error) {
-      console.error('Error enviando alerta:', error);
-      setToastMessage('❌ Error al enviar la alerta. Verifica tu conexión.');
-      setToastColor('danger');
-    } finally {
-      setIsLoadingAlert(false);
-      setShowToast(true);
-    }
-  };
-
-  // Funciones para tracking de ubicación automático (sin botones)
-  const startTrackingAutomatically = async () => {
-    try {
-      console.log('🌍 Iniciando tracking automático cada 5 segundos...');
-
-      await startLocationTracking(5000, {
-        onLocationUpdate: (data: LocationTrackingData) => {
-          const timeStamp = new Date().toLocaleTimeString();
-          const logMessage = `${timeStamp} - ✅ Enviado: ${data.latitud.toFixed(8)}, ${data.longitud.toFixed(9)} (±${data.accuracy}m)`;
-          setTrackingLogs((prev) => [logMessage, ...prev.slice(0, 4)]);
-          console.log('📍 Ubicación enviada al backend:', logMessage);
-        },
-        onError: (error: string) => {
-          console.error('❌ Error de tracking automático:', error);
-          const timeStamp = new Date().toLocaleTimeString();
-          const logMessage = `${timeStamp} - ❌ Error: ${error.substring(0, 30)}...`;
-          setTrackingLogs((prev) => [logMessage, ...prev.slice(0, 4)]);
-        },
-      });
-
-      setIsTrackingActive(true);
-      console.log('✅ Tracking automático iniciado correctamente');
-
-      const startTime = new Date().toLocaleTimeString();
-      const startMessage = `${startTime} - 🚀 Tracking iniciado automáticamente`;
-      setTrackingLogs((prev) => [startMessage, ...prev.slice(0, 4)]);
-    } catch (error) {
-      console.error('❌ Error iniciando tracking automático:', error);
-      const timeStamp = new Date().toLocaleTimeString();
-      const errorMessage = `${timeStamp} - ❌ Error iniciando tracking: ${error}`;
-      setTrackingLogs((prev) => [errorMessage, ...prev.slice(0, 4)]);
-    }
-  };
-
-  // Cleanup: detener tracking y limpiar mapa cuando el componente se desmonte
+  // Cleanup: limpiar mapa cuando el componente se desmonte
   useEffect(() => {
     return () => {
-      if (isTrackingActive) {
-        stopLocationTracking();
-        console.log('🛑 Tracking detenido al desmontar componente');
-      }
-      
       // Limpiar mapa de Leaflet
       if (mapInstance.current) {
         mapInstance.current.remove();
@@ -519,7 +369,7 @@ const MapWidget: React.FC = () => {
         console.log('🗺️ Mapa de Leaflet limpiado al desmontar componente');
       }
     };
-  }, [isTrackingActive]);
+  }, []);
 
   return (
     <IonCard className="map-widget-card">
@@ -607,44 +457,6 @@ const MapWidget: React.FC = () => {
             </div>
 
             <div className="location-actions">
-              {/* Botón de alerta de emergencia */}
-              <IonButton
-                expand="block"
-                fill="outline"
-                size="small"
-                disabled={isLoadingAlert}
-                onClick={handleEmergencyClick}
-                style={{
-                  '--color': 'var(--foreground)',
-                  '--border-color': 'var(--border)',
-                  height: '48px',
-                  textAlign: 'left',
-                  justifyContent: 'flex-start',
-                  opacity: isLoadingAlert ? 0.6 : 1,
-                  marginTop: '12px'
-                }}
-              >
-                {isLoadingAlert ? (
-                  <IonSpinner 
-                    name="crescent" 
-                    style={{ marginRight: '10px', color: 'var(--womxi-pink-500)' }} 
-                  />
-                ) : (
-                  <IonIcon 
-                    icon={locationOutline} 
-                    style={{ marginRight: '10px', color: 'var(--womxi-pink-500)' }} 
-                  />
-                )}
-                <div>
-                  <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>
-                    {isLoadingAlert ? 'Enviando Alerta...' : 'Compartir Ubicación'}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
-                    A contactos de emergencia
-                  </div>
-                </div>
-              </IonButton>
-
               <IonButton 
                 fill="outline" 
                 expand="block" 
@@ -654,77 +466,10 @@ const MapWidget: React.FC = () => {
                 <IonIcon icon={refreshOutline} slot="start" />
                 Actualizar Ubicación
               </IonButton>
-
-              {/* 📍 LOGS DE TRACKING AUTOMÁTICO (sin botones) */}
-              {trackingLogs.length > 0 && (
-                <div style={{ 
-                  marginTop: '16px',
-                  padding: '8px',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--ion-color-light, #f8f9fa)',
-                  border: '1px solid var(--ion-color-medium, #92949c)'
-                }}>
-                  <IonText color="medium">
-                    <p style={{ margin: '0 0 6px 0', fontWeight: '500', fontSize: '12px' }}>
-                      📍 Tracking Automático Activo
-                    </p>
-                  </IonText>
-                  
-                  <div style={{
-                    maxHeight: '70px',
-                    overflowY: 'auto',
-                    backgroundColor: 'white',
-                    borderRadius: '4px',
-                    padding: '4px',
-                    fontSize: '9px',
-                    fontFamily: 'monospace'
-                  }}>
-                    {trackingLogs.map((log, index) => (
-                      <div key={index} style={{ 
-                        padding: '1px 0', 
-                        color: log.includes('❌') ? '#dc3545' : '#28a745',
-                        opacity: index === 0 ? 1 : 0.7
-                      }}>
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
       </IonCardContent>
-
-      {/* Confirmación de emergencia */}
-      <IonAlert
-        isOpen={isAlertOpen}
-        onDidDismiss={() => setIsAlertOpen(false)}
-        header="⚠️ Alerta de Emergencia"
-        message="¿Estás seguro de que quieres enviar una alerta de emergencia? Se notificará inmediatamente a tus contactos de emergencia con tu ubicación actual."
-        buttons={[
-          {
-            text: 'Cancelar',
-            role: 'cancel',
-            cssClass: 'secondary'
-          },
-          {
-            text: '🚨 Enviar Alerta',
-            cssClass: 'danger',
-            handler: sendEmergencyAlert
-          }
-        ]}
-      />
-
-      {/* Toast de confirmación */}
-      <IonToast
-        isOpen={showToast}
-        onDidDismiss={() => setShowToast(false)}
-        message={toastMessage}
-        duration={4000}
-        color={toastColor}
-        position="top"
-      />
     </IonCard>
   );
 };

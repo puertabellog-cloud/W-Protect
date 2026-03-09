@@ -13,7 +13,7 @@ class LocationTrackingService {
   private isRunning: boolean = false;
   private alertId: number | null = null;
 
-  private readonly UPDATE_INTERVAL = 5000;
+  private readonly UPDATE_INTERVAL = 30000; // 30 segundos
 
   private onLocationUpdate?: (data: LocationTrackingData) => void;
   private onError?: (error: string) => void;
@@ -25,22 +25,39 @@ class LocationTrackingService {
       onError?: (error: string) => void;
     }
   ) {
-    if (this.isRunning) return;
+    // Si ya hay tracking con el mismo alertId, bloquear nuevo inicio
+    if (this.isRunning && this.alertId === alertId) {
+      console.warn('Intento de doble tracking bloqueado para alertId:', alertId);
+      return;
+    }
+
+    // Si hay tracking activo para otra alerta, detenerlo antes de iniciar
+    if (this.isRunning && this.alertId !== alertId) {
+      console.log('Cambio de alertId detectado. Deteniendo tracking anterior:', this.alertId);
+      this.stop();
+    }
 
     this.alertId = alertId;
     this.onLocationUpdate = callbacks?.onLocationUpdate;
     this.onError = callbacks?.onError;
 
     await this.checkPermissions();
+    // Primer envío inmediato
     await this.getLocationAndSend();
+    // Asegurar que no se cree más de un intervalo
     this.startPeriodicUpdates();
     this.isRunning = true;
+    console.log('Tracking iniciado para alertId:', alertId);
   }
 
   stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
+    }
+
+    if (this.isRunning) {
+      console.log('Tracking detenido para alertId:', this.alertId);
     }
 
     this.isRunning = false;
@@ -99,6 +116,7 @@ class LocationTrackingService {
         return;
       }
 
+      console.log('📍 Ubicación enviada con éxito:', locationData);
       this.onLocationUpdate?.(locationData);
 
     } catch (error) {
@@ -108,6 +126,12 @@ class LocationTrackingService {
   }
 
   private startPeriodicUpdates() {
+    // No crear otro intervalo si ya existe
+    if (this.intervalId) {
+      console.warn('Intento de crear intervalo duplicado bloqueado');
+      return;
+    }
+
     this.intervalId = setInterval(async () => {
       await this.getLocationAndSend();
     }, this.UPDATE_INTERVAL);

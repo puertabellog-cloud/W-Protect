@@ -90,8 +90,6 @@ export const Register: React.FC<RegisterProps> = ({
           name: form.name.trim(),
           phone: form.phone.trim(),
           email: form.email.trim(),
-          mensaje: form.emergencyMessage.trim() || 'Necesito ayuda urgente',
-          ...(deviceId && { deviceId: deviceId }),
           active: true
         });
         console.log('✅ Perfil guardado en API exitosamente');
@@ -478,31 +476,6 @@ export const Register: React.FC<RegisterProps> = ({
                   value={form.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                 />
-              </div>
-            </div>
-
-            {/* Emergency Message */}
-            <div className="input-group">
-              <div className="field-label">
-                Mensaje de Emergencia <span className="optional-label">(opcional)</span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <IonIcon icon={chatbubbleOutline} className="textarea-icon" />
-                <textarea
-                  className="textarea-field"
-                  placeholder="Ayuda urgente"
-                  value={form.emergencyMessage}
-                  onChange={(e) => handleInputChange('emergencyMessage', e.target.value)}
-                  maxLength={30}
-                />
-              </div>
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#a0aec0', 
-                textAlign: 'right', 
-                marginTop: '4px' 
-              }}>
-                {form.emergencyMessage.length}/30
               </div>
             </div>
 

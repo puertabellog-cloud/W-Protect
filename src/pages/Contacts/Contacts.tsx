@@ -9,13 +9,13 @@ import {
 } from '@ionic/react';
 import { 
   add, personCircle, trash, create, shieldCheckmarkOutline,
-  peopleOutline, callOutline, locationOutline
+  peopleOutline, callOutline, locationOutline, personAdd, close, checkmark
 } from 'ionicons/icons';
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
 import { getInitials } from '../../utils/avatarUtils';
 import { getContactsByUserId, saveContact, deleteContact as deleteContactService } from '../../services/springBootServices';
-import { getUserByDeviceId } from '../../services/springBootServices';
+import { getUserByEmail } from '../../services/springBootServices';
 import { Contact, User } from '../../types';
 import { useDevice } from "../../context/DeviceContext";
 import { apiClient } from '../../api/apiClient';
@@ -47,6 +47,9 @@ const ContactsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isManualContactModalOpen, setIsManualContactModalOpen] = useState(false);
+  const [manualContactName, setManualContactName] = useState('');
+  const [manualContactPhone, setManualContactPhone] = useState('');
   const [toastMessage, setToastMessage] = useState<string>("");
   const [toastColor, setToastColor] = useState<'success' | 'danger' | 'warning'>('success');
   const [editContactIndex, setEditContactIndex] = useState<number | null>(null);
@@ -66,14 +69,29 @@ const ContactsPage: React.FC = () => {
      1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
      -------------------------------------------------------------- */
   useEffect(() => {
-    // Si no tienes todavía un deviceId, no intentes la llamada.
-    if (!deviceId) return;
-
     const fetchCurrentUser = async () => {
       try {
-        const response = await apiClient.get<User>(`/users/device/${deviceId}`);
-        const profile = response.data;
+        // Obtener email del usuario desde localStorage
+        let userData = localStorage.getItem('w-protect-user');
+        if (!userData) {
+          userData = localStorage.getItem('wprotect_registration');
+        }
+        
+        if (!userData) {
+          console.warn('No hay datos de usuario en localStorage');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        if (!user.email) {
+          console.warn('No se encontró email en los datos de usuario');
+          return;
+        }
+
+        // Llamada al backend usando el email
+        const profile = await getUserByEmail(user.email);
         console.log("Perfil obtenido:", profile);
+        
         if (profile && typeof profile.id === 'number') {
           setCurrentUserId(profile.id);
           setProfileReady(true);
@@ -86,7 +104,7 @@ const ContactsPage: React.FC = () => {
     };
 
     fetchCurrentUser();
-  }, [deviceId]);   // Se vuelve a ejecutar sólo si cambia el deviceId
+  }, []);
 
 
   // Monitorear estado de conexión
@@ -289,8 +307,71 @@ const ContactsPage: React.FC = () => {
     event.detail.complete();
   };
 
+  // Detectar si está en web para mostrar opción de contacto manual
+  const isWeb = (() => {
+    try {
+      // Método más confiable para detectar web
+      return !window.Capacitor || !window.Capacitor.isNativePlatform?.();
+    } catch {
+      // Fallback si Capacitor no está disponible
+      return typeof window !== 'undefined' && 
+             !window.DeviceMotionEvent && 
+             navigator.userAgent.indexOf('Mobile') === -1;
+    }
+  })();
+
+  // === Agregar contacto manual (para web) ===
+  const addManualContact = async () => {
+    if (!manualContactName.trim() || !manualContactPhone.trim()) {
+      showToast('Por favor completa todos los campos', 'danger');
+      return;
+    }
+
+    if (emergencyContacts.length >= 5) {
+      showToast('Has alcanzado el límite de 5 contactos de emergencia', 'warning');
+      return;
+    }
+
+    // Limpiar el número de teléfono
+    const cleanPhone = manualContactPhone.replace(/\s+/g, '');
+
+    // Verificar si ya existe
+    const alreadyAdded = emergencyContacts.some((c) => 
+      c.phone.replace(/\s+/g, '') === cleanPhone
+    );
+    if (alreadyAdded) {
+      showToast('Este contacto ya está en tu lista', 'warning');
+      return;
+    }
+
+    const newContactData = {
+      name: manualContactName.trim(),
+      phone: cleanPhone,
+    };
+
+    console.log("Agregando contacto manual:", newContactData);
+    await saveContactToBackend(newContactData);
+    
+    // Limpiar formulario
+    setManualContactName('');
+    setManualContactPhone('');
+    setIsManualContactModalOpen(false);
+  };
+
   // === Obtener todos los contactos del dispositivo ===
   const openContacts = async () => {
+    // Si estamos en web, mostrar mensaje informativo y usar la opción manual
+    if (isWeb) {
+      showToast('En versión web, usa "Agregar Contacto Manual" para añadir contactos', 'warning');
+      return;
+    }
+
+    // Verificación adicional para asegurar que no estamos en web
+    if (!window.Capacitor?.isNativePlatform?.()) {
+      showToast('Esta función solo está disponible en dispositivos móviles', 'warning');
+      return;
+    }
+
     try {
       const permission = await Contacts.requestPermissions();
 
@@ -846,7 +927,7 @@ const ContactsPage: React.FC = () => {
       }}>
         <IonButton
           expand="block"
-          onClick={openContacts}
+          onClick={isWeb ? () => setIsManualContactModalOpen(true) : openContacts}
           disabled={emergencyContacts.length >= 5}
           style={{
             '--background': emergencyContacts.length >= 5 
@@ -868,8 +949,32 @@ const ContactsPage: React.FC = () => {
           }}
         >
           <IonIcon icon={add} slot="start" style={{ fontSize: '1.3rem' }} />
-          {emergencyContacts.length >= 5 ? 'Límite alcanzado (5/5)' : 'Agregar Contacto'}
+          {emergencyContacts.length >= 5 ? 'Límite alcanzado (5/5)' : 
+           isWeb ? 'Agregar Contacto Manual' : 'Agregar Contacto'
+          }
         </IonButton>
+        
+        {!isWeb && emergencyContacts.length < 5 && (
+          <IonButton
+            expand="block"
+            fill="outline"
+            onClick={openContacts}
+            style={{
+              '--border-color': '#10b981',
+              '--color': '#10b981',
+              '--border-radius': '20px',
+              height: '48px',
+              fontWeight: '600',
+              fontSize: '1rem',
+              fontFamily: 'Poppins, sans-serif',
+              marginTop: '8px',
+              width: '100%'
+            }}
+          >
+            <IonIcon icon={peopleOutline} slot="start" style={{ fontSize: '1.1rem' }} />
+            Desde Contactos del Dispositivo
+          </IonButton>
+        )}
       </div>
 
       {/* Modal de todos los contactos con buscador mejorado */}
@@ -1037,6 +1142,115 @@ const ContactsPage: React.FC = () => {
       </IonModal>
 
       {/* Alerta de confirmación de eliminación */}
+      {/* Modal para agregar contacto manual (web) */}
+      <IonModal isOpen={isManualContactModalOpen} onDidDismiss={() => {
+        setIsManualContactModalOpen(false);
+        setManualContactName('');
+        setManualContactPhone('');
+      }}>
+        <IonHeader>
+          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #10b981 0%, #047857 100%)', '--color': 'white' }}>
+            <IonTitle style={{ fontWeight: '600' }}>
+              <IonIcon icon={personAdd} style={{ marginRight: '8px', fontSize: '1.2rem' }} />
+              Agregar Contacto Manual
+            </IonTitle>
+            <IonButton
+              slot="end"
+              fill="clear"
+              onClick={() => {
+                setIsManualContactModalOpen(false);
+                setManualContactName('');
+                setManualContactPhone('');
+              }}
+            >
+              <IonIcon icon={close} style={{ color: 'white' }} />
+            </IonButton>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent style={{ '--background': '#fafafa' }}>
+          <div style={{ padding: '20px' }}>
+            <p style={{ color: '#64748b', marginBottom: '20px', textAlign: 'center' }}>
+              Agrega un contacto escribiendo su nombre y teléfono manualmente
+            </p>
+            
+            <IonInput
+              label="Nombre del contacto"
+              labelPlacement="stacked"
+              value={manualContactName}
+              onIonInput={(e) => setManualContactName(e.detail.value!)}
+              placeholder="Ej: María García"
+              style={{
+                '--background': 'white',
+                '--border-radius': '12px',
+                '--padding-start': '16px',
+                '--padding-end': '16px',
+                '--padding-top': '12px',
+                '--padding-bottom': '12px',
+                marginBottom: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                border: '1px solid #e2e8f0'
+              }}
+            />
+            
+            <IonInput
+              label="Número de teléfono"
+              labelPlacement="stacked"
+              value={manualContactPhone}
+              onIonInput={(e) => setManualContactPhone(e.detail.value!)}
+              placeholder="Ej: +57 300 123 4567"
+              type="tel"
+              style={{
+                '--background': 'white',
+                '--border-radius': '12px',
+                '--padding-start': '16px',
+                '--padding-end': '16px',
+                '--padding-top': '12px',
+                '--padding-bottom': '12px',
+                marginBottom: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                border: '1px solid #e2e8f0'
+              }}
+            />
+            
+            <IonButton
+              expand="block"
+              onClick={addManualContact}
+              disabled={!manualContactName.trim() || !manualContactPhone.trim()}
+              style={{
+                '--background': 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                '--border-radius': '15px',
+                height: '55px',
+                fontWeight: '700',
+                fontSize: '1.1rem',
+                marginBottom: '12px'
+              }}
+            >
+              <IonIcon icon={checkmark} slot="start" style={{ fontSize: '1.2rem' }} />
+              Agregar Contacto
+            </IonButton>
+            
+            <IonButton
+              expand="block"
+              fill="outline"
+              onClick={() => {
+                setIsManualContactModalOpen(false);
+                setManualContactName('');
+                setManualContactPhone('');
+              }}
+              style={{
+                '--border-color': '#6b7280',
+                '--color': '#6b7280',
+                '--border-radius': '15px',
+                height: '45px',
+                fontWeight: '600'
+              }}
+            >
+              Cancelar
+            </IonButton>
+          </div>
+        </IonContent>
+      </IonModal>
+
       <IonAlert
         isOpen={isDeleteAlertOpen}
         onDidDismiss={() => setIsDeleteAlertOpen(false)}

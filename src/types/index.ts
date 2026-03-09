@@ -9,38 +9,39 @@
  * Usuario - Corresponde a la entidad Wuser del backend
  */
 export interface User {
-  id?: number;
-  name: string;
-  email: string;
-  phone?: string;
-  deviceId?: string;
-  active?: boolean;
-  mensaje?: string;
+  id?: number
+  name: string
+  email: string
+  phone: string
+  profile?: string
+  active?: boolean
+  emergencyMode?: boolean
 }
 
 /**
  * Contacto - Corresponde a la entidad Wcontact del backend
  */
+
 export interface Contact {
-  id?: number;
-  wusuarioId: number;
-  name: string;
-  phone: string;
-  email?: string;
-  relationship?: string;
+  id?: number
+  name: string
+  phone: string
+  alias?: string
+  wusuarioId: number
 }
 
 /**
  * Alerta - Corresponde EXACTAMENTE a la entidad Walerta del backend
  */
 export interface Alert {
-  id?: number;
-  mensaje: string;           // ✅ Coincide con backend (no "message")
-  latitud: string;          // ✅ Coincide con backend (String, no number)
-  longitud: string;         // ✅ Coincide con backend (String, no number)
-  timestamp?: string;       // ✅ Coincide con backend
-  userId: number;           // ✅ Coincide con backend
-  contactosNotificados?: number; // ✅ Coincide con backend
+  id?: number
+  message: string
+  latitud: string
+  longitud: string
+  userId: number
+  emergencyMode?: boolean
+  timestamp?: string
+  contactsNotified?: number
 }
 
 // === TIPOS PARA AUTENTICACIÓN ===
