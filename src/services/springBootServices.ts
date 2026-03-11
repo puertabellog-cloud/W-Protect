@@ -76,6 +76,7 @@ export const getContactsByUserId = async (userId: number): Promise<Contact[]> =>
       `${API_ENDPOINTS.contacts.getByUser}/${userId}`
     )
 
+    console.log('📋 Contactos cargados:', response.data.length, 'contactos con IDs:', response.data.map(c => c.id));
     return response.data
 
   } catch (error) {
@@ -87,9 +88,9 @@ export const getContactsByUserId = async (userId: number): Promise<Contact[]> =>
 }
 
 /**
- * Crear o actualizar contacto
+ * Crear contacto nuevo
  */
-export const saveContact = async (contact: Contact): Promise<Contact> => {
+export const createContact = async (contact: Omit<Contact, 'id'>): Promise<Contact> => {
   try {
 
     const payload = {
@@ -97,14 +98,72 @@ export const saveContact = async (contact: Contact): Promise<Contact> => {
       phone: contact.phone,
       alias: contact.alias ?? '',
       wusuarioId: contact.wusuarioId
+      // Sin ID para creación
     }
 
+    // POST /w/contacts/save para crear nuevo contacto
     const response = await apiClient.post(
       API_ENDPOINTS.contacts.save,
       payload
     )
 
+    console.log('✅ Contacto creado:', response.data)
     return response.data
+
+  } catch (error) {
+
+    console.error('Error al crear contacto:', error)
+    throw new Error('Error al crear contacto')
+
+  }
+}
+
+/**
+ * Actualizar contacto existente
+ */
+export const updateContact = async (contactId: number, contact: Contact): Promise<Contact> => {
+  try {
+
+    const payload = {
+      id: contactId,
+      name: contact.name,
+      phone: contact.phone,
+      alias: contact.alias ?? '',
+      wusuarioId: contact.wusuarioId
+    }
+
+    // PUT /w/contacts/{id} para actualizar contacto existente
+    const response = await apiClient.put(
+      `${API_ENDPOINTS.contacts.save}/${contactId}`,
+      payload
+    )
+
+    console.log('🔄 Contacto actualizado:', response.data)
+    return response.data
+
+  } catch (error) {
+
+    console.error('Error al actualizar contacto:', error)
+    throw new Error('Error al actualizar contacto')
+
+  }
+}
+
+/**
+ * Crear o actualizar contacto (mantener para compatibilidad)
+ * @deprecated Usar createContact() o updateContact() directamente
+ */
+export const saveContact = async (contact: Contact): Promise<Contact> => {
+  try {
+
+    // Diferenciar entre crear y actualizar basado en la presencia del ID
+    if (contact.id) {
+      console.log('🔄 Actualizando contacto existente con ID:', contact.id)
+      return await updateContact(contact.id, contact)
+    } else {
+      console.log('✅ Creando nuevo contacto')
+      return await createContact(contact)
+    }
 
   } catch (error) {
 
@@ -120,9 +179,13 @@ export const saveContact = async (contact: Contact): Promise<Contact> => {
 export const deleteContact = async (contactId: number): Promise<void> => {
   try {
 
-    await apiClient.delete(
+    // DELETE /w/contacts/{id} para eliminar contacto
+    const response = await apiClient.delete(
       `${API_ENDPOINTS.contacts.delete}/${contactId}`
     )
+
+    console.log('🗑️ Contacto eliminado con ID:', contactId)
+    return response.data
 
   } catch (error) {
 

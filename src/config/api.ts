@@ -21,8 +21,8 @@ export const API_ENDPOINTS = {
   // Contacts Management (WcontactController)
   contacts: {
     getByUser: '/w/contacts/user', // GET /w/contacts/user/{userId}
-    save: '/w/contacts/save', // PUT /w/contacts/save
-    delete: '/w/contacts/delete', // DELETE /w/contacts/delete
+    save: '/w/contacts/save', // POST /w/contacts/save (crear) | PUT /w/contacts/save/{id} (actualizar)
+    delete: '/w/contacts', // DELETE /w/contacts/{id}
   },
   
   // Alerts Management (WalertController)

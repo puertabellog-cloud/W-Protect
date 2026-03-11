@@ -14,7 +14,7 @@ import {
 import { Contacts } from '@capacitor-community/contacts';
 import { AppHeader } from '../../components/AppHeader';
 import { getInitials } from '../../utils/avatarUtils';
-import { getContactsByUserId, saveContact, deleteContact as deleteContactService } from '../../services/springBootServices';
+import { getContactsByUserId, createContact, updateContact, saveContact, deleteContact as deleteContactService } from '../../services/springBootServices';
 import { getUserByEmail } from '../../services/springBootServices';
 import { Contact, User } from '../../types';
 import { useDevice } from "../../context/DeviceContext";
@@ -204,18 +204,18 @@ const ContactsPage: React.FC = () => {
     }
 
     try {
-      console.log("Guardando contacto...");
+      console.log("Creando nuevo contacto...");
       
-      // Crear el objeto completo para enviar al backend
-      const contactToSave: Contact = {
+      // Crear el objeto para nuevo contacto (sin ID)
+      const contactToCreate = {
         ...contactData,
         wusuarioId: currentUserId // Usar wusuarioId según la estructura de Contact
-        // No incluir 'id' para que el backend sepa que es un nuevo contacto
+        // No incluir 'id' para nuevo contacto
       };
-      let ave = JSON.stringify(contactToSave);
-      console.log("Datos a enviar:", ave);
+      let dataToSend = JSON.stringify(contactToCreate);
+      console.log("Datos a enviar para creación:", dataToSend);
       
-      const savedContact = await saveContact(contactToSave);
+      const savedContact = await createContact(contactToCreate);
       const updated = [...emergencyContacts, savedContact];
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
@@ -253,9 +253,10 @@ const ContactsPage: React.FC = () => {
         ...updates
       };
 
-      console.log("Actualizando contacto:", updatedContactData);
+      console.log("Actualizando contacto con ID:", contactId, updatedContactData);
 
-      const updatedContact = await saveContact(updatedContactData); // Usar saveContact para actualizar
+      // Usar updateContact específicamente para actualizaciones (PUT)
+      const updatedContact = await updateContact(contactId, updatedContactData);
       const updated = emergencyContacts.map(c => 
         c.id === contactId ? updatedContact : c
       );
@@ -516,8 +517,15 @@ const ContactsPage: React.FC = () => {
     if (editContactIndex === null) return;
 
     const contact = emergencyContacts[editContactIndex];
+    
+    // Verificar que el contacto tenga ID para actualizarlo
     if (contact.id) {
-      await updateContactInBackend(contact.id, { name: editName }); // Usar name en lugar de alias
+      console.log('✏️ Editando contacto existente con ID:', contact.id);
+      await updateContactInBackend(contact.id, { name: editName });
+    } else {
+      console.error('❌ Error: Intentando editar contacto sin ID válido');
+      showToast('Error: No se puede editar un contacto sin ID válido', 'danger');
+      return;
     }
 
     setIsEditModalOpen(false);
