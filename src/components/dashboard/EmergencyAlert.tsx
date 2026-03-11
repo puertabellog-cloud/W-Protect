@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser } from '../../services/authService';
 import { saveAlert, closeAlert, getUserByEmail } from '../../services/springBootServices';
-import { startLocationTracking, stopLocationTracking } from '../../services/locationTrackingService';
+import { startLocationTracking, stopLocationTracking, stopTracking } from '../../services/locationTrackingService';
 
 import {
   IonPage,
@@ -41,6 +41,11 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
   const [alertId, setAlertId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  
+  // Estados para tracking y UI
+  const [isTracking, setIsTracking] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [alertStatus, setAlertStatus] = useState<'ACTIVE' | 'CLOSED' | 'EXPIRED'>('ACTIVE');
 
   /* =========================
      Cargar perfil del usuario y contactos guardados
@@ -130,25 +135,48 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
 
       setAlertId(id);
       setAlertSent(true);
+      setAlertStatus('ACTIVE');
 
-      startLocationTracking(id, {
-        onLocationUpdate: (loc: any) => console.log("Ubicación enviada", loc),
-        onError: (err: any) => console.warn("Error tracking", err)
-      });
+      const timer = setTimeout(() => {
+        setIsTracking(true);
+        startLocationTracking(id, {
+          onLocationUpdate: (loc) => {
+            console.log("📍 Ubicación enviada:", loc);
+            setTrackingError(null);
+          },
+          onError: (err) => {
+            console.warn("❌ Error tracking:", err);
+            setTrackingError(err);
+          },
+          onAlertExpired: () => {
+            console.log("⏰ Alerta expirada - Deteniendo tracking");
+            setAlertStatus('EXPIRED');
+            setIsTracking(false);
+            setTrackingError('La alerta ya no está activa');
+          }
+        });
+      }, 1000);
+
+      return () => {
+        clearTimeout(timer);
+        stopTracking('useEffect_cleanup');
+        setIsTracking(false);
+      };
 
     }
 
   }, []);
 
   /* =========================
-     Cleanup
+     Cleanup - React Strict Mode safe
   ========================== */
 
   useEffect(() => {
 
     return () => {
-      console.log("Deteniendo tracking al desmontar componente");
-      stopLocationTracking();
+      console.log("🧹 Component unmount - Stopping tracking");
+      stopTracking('component_unmount');
+      setIsTracking(false);
     };
 
   }, []);
@@ -251,9 +279,23 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
 
         console.log("Alerta creada con ID:", id);
 
+        setIsTracking(true);
+        setAlertStatus('ACTIVE');
         startLocationTracking(id, {
-          onLocationUpdate: (loc: any) => console.log("Ubicación enviada", loc),
-          onError: (err: any) => console.warn("Error tracking", err)
+          onLocationUpdate: (loc) => {
+            console.log("📍 Ubicación enviada:", loc);
+            setTrackingError(null);
+          },
+          onError: (err) => {
+            console.warn("❌ Error tracking:", err);
+            setTrackingError(err);
+          },
+          onAlertExpired: () => {
+            console.log("⏰ Alerta expirada desde envío");
+            setAlertStatus('EXPIRED');
+            setIsTracking(false);
+            setTrackingError('La alerta ya no está activa');
+          }
         });
 
         alert("Alerta enviada. Contactos notificados.");
@@ -308,7 +350,9 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
 
       await closeAlert(id);
 
-      stopLocationTracking();
+      stopTracking('alert_closed');
+      setIsTracking(false);
+      setAlertStatus('CLOSED');
 
       setAlertSent(false);
       setAlertId(null);
@@ -317,6 +361,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
 
       setIsActivated(false);
       setCountdown(0);
+      setTrackingError(null);
 
       alert("Alerta cerrada");
 
@@ -378,6 +423,18 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
               <h2>EMERGENCIA ACTIVADA</h2>
 
               <p>Enviando alertas a tus contactos</p>
+              
+              {isTracking && (
+                <p style={{ fontSize: '0.9rem', color: '#fff' }}>📍 Rastreando ubicación...</p>
+              )}
+              
+              {trackingError && (
+                <p style={{ fontSize: '0.85rem', color: '#ffeb3b' }}>⚠️ {trackingError}</p>
+              )}
+              
+              {alertStatus === 'EXPIRED' && (
+                <p style={{ fontSize: '0.85rem', color: '#ffeb3b' }}>⏰ Alerta expirada</p>
+              )}
 
               <h1>{countdown}</h1>
 

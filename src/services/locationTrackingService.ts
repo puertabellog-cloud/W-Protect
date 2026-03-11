@@ -5,11 +5,13 @@ import { apiClient } from '../api/apiClient';
 export interface LocationTrackingData {
   latitud: number;
   longitud: number;
-  accuracy?: number;
+  accuracy: number | null;
+  mensaje: string;
 }
 
+let trackingInterval: NodeJS.Timeout | null = null;
+
 class LocationTrackingService {
-  private intervalId: any = null;
   private isRunning: boolean = false;
   private alertId: number | null = null;
 
@@ -17,47 +19,53 @@ class LocationTrackingService {
 
   private onLocationUpdate?: (data: LocationTrackingData) => void;
   private onError?: (error: string) => void;
+  private onAlertExpired?: () => void;
 
   async start(
     alertId: number,
     callbacks?: {
       onLocationUpdate?: (data: LocationTrackingData) => void;
       onError?: (error: string) => void;
+      onAlertExpired?: () => void;
     }
   ) {
-    // Si ya hay tracking con el mismo alertId, bloquear nuevo inicio
-    if (this.isRunning && this.alertId === alertId) {
-      console.warn('Intento de doble tracking bloqueado para alertId:', alertId);
+    // Guard: si ya hay intervalo, no iniciar otro (React Strict Mode safe)
+    if (trackingInterval !== null) {
+      console.warn("⚠️ Tracking ya activo - Evitando intervalo duplicado");
       return;
     }
 
     // Si hay tracking activo para otra alerta, detenerlo antes de iniciar
     if (this.isRunning && this.alertId !== alertId) {
-      console.log('Cambio de alertId detectado. Deteniendo tracking anterior:', this.alertId);
-      this.stop();
+      console.log('🔄 Cambio de alertId detectado. Deteniendo tracking anterior:', this.alertId);
+      this.stop('cambio_alert_id');
     }
 
     this.alertId = alertId;
     this.onLocationUpdate = callbacks?.onLocationUpdate;
     this.onError = callbacks?.onError;
+    this.onAlertExpired = callbacks?.onAlertExpired;
 
     await this.checkPermissions();
+    
     // Primer envío inmediato
     await this.getLocationAndSend();
-    // Asegurar que no se cree más de un intervalo
+    
+    // Iniciar updates periódicos
     this.startPeriodicUpdates();
     this.isRunning = true;
-    console.log('Tracking iniciado para alertId:', alertId);
+    
+    console.log('🟢 Started tracking alertId:', alertId);
   }
 
-  stop() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
+  stop(reason: string = 'manual') {
+    if (trackingInterval) {
+      clearInterval(trackingInterval);
+      trackingInterval = null;
     }
 
     if (this.isRunning) {
-      console.log('Tracking detenido para alertId:', this.alertId);
+      console.log('🔴 Tracking stopped for alertId:', this.alertId, 'reason=', reason);
     }
 
     this.isRunning = false;
@@ -86,10 +94,12 @@ class LocationTrackingService {
         );
       });
 
+      // Payload estandarizado para backend W-Protect
       const locationData: LocationTrackingData = {
         latitud: position.coords.latitude,
         longitud: position.coords.longitude,
-        accuracy: position.coords.accuracy
+        accuracy: position.coords.accuracy || null,
+        mensaje: "Ubicación de seguimiento automático"
       };
 
       const response = await apiClient.post(
@@ -97,10 +107,11 @@ class LocationTrackingService {
         locationData
       );
 
-      if (response.status === 400) {
-        console.warn('❌ Alerta no activa. Deteniendo tracking.');
-        this.stop();
-        this.onError?.('La alerta fue cerrada. El tracking se ha detenido.');
+      // Si responde 400 o 404, detener tracking inmediatamente y marcar como expirada
+      if (response.status === 400 || response.status === 404) {
+        console.warn('❌ алerta expired/closed (400/404) - Stopping tracking');
+        this.stop('alert_expired');
+        this.onAlertExpired?.();
         return;
       }
 
@@ -111,28 +122,34 @@ class LocationTrackingService {
       }
 
       if (!response.status.toString().startsWith('2')) {
-        console.error('❌ Error inesperado al enviar ubicación:', response.data);
+        console.error('❌ Error inesperado al enviar ubicación:', response.status, response.data);
         this.onError?.('Error inesperado al enviar ubicación.');
         return;
       }
 
-      console.log('📍 Ubicación enviada con éxito:', locationData);
+      console.log('📍 Location sent OK:', {
+        alertId: this.alertId,
+        lat: locationData.latitud.toFixed(6),
+        lng: locationData.longitud.toFixed(6),
+        accuracy: locationData.accuracy
+      });
+      
       this.onLocationUpdate?.(locationData);
 
     } catch (error) {
-      console.error('❌ Error de red o al enviar ubicación:', error);
+      console.error('❌ Error de red o al obtener ubicación:', error);
       this.onError?.('Error de red. Intentando nuevamente...');
     }
   }
 
   private startPeriodicUpdates() {
-    // No crear otro intervalo si ya existe
-    if (this.intervalId) {
-      console.warn('Intento de crear intervalo duplicado bloqueado');
+    // Guard: No crear intervalo si ya existe (React Strict Mode safe)
+    if (trackingInterval !== null) {
+      console.warn('⚠️ Intervalo ya existe - Evitando duplicado');
       return;
     }
 
-    this.intervalId = setInterval(async () => {
+    trackingInterval = setInterval(async () => {
       await this.getLocationAndSend();
     }, this.UPDATE_INTERVAL);
   }
@@ -142,12 +159,21 @@ class LocationTrackingService {
       isRunning: this.isRunning,
       alertId: this.alertId,
       interval: this.UPDATE_INTERVAL,
-      platform: Capacitor.getPlatform()
+      platform: Capacitor.getPlatform(),
+      hasInterval: trackingInterval !== null
     };
   }
 }
 
 export const locationTrackingService = new LocationTrackingService();
+
+export function stopTracking(reason: string = 'cleanup') {
+  if (trackingInterval) {
+    clearInterval(trackingInterval);
+    trackingInterval = null;
+  }
+  locationTrackingService.stop(reason);
+}
 
 export const startLocationTracking = (
   alertId: number,

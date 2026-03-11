@@ -320,6 +320,15 @@ const ContactsPage: React.FC = () => {
     }
   })();
 
+  // === Formatear con +57 automáticamente ===
+  const formatPhoneWithCode = (phone: string): string => {
+    const cleaned = phone.replace(/\s+/g, '');
+    if (!cleaned.startsWith('+57')) {
+      return '+57' + cleaned;
+    }
+    return cleaned;
+  };
+
   // === Agregar contacto manual (para web) ===
   const addManualContact = async () => {
     if (!manualContactName.trim() || !manualContactPhone.trim()) {
@@ -332,8 +341,8 @@ const ContactsPage: React.FC = () => {
       return;
     }
 
-    // Limpiar el número de teléfono
-    const cleanPhone = manualContactPhone.replace(/\s+/g, '');
+    // Limpiar el número de teléfono y agregar +57
+    const cleanPhone = formatPhoneWithCode(manualContactPhone.replace(/\s+/g, ''));
 
     // Verificar si ya existe
     const alreadyAdded = emergencyContacts.some((c) => 
@@ -444,11 +453,11 @@ const ContactsPage: React.FC = () => {
       return;
     }
 
-    // Limpiar el número de teléfono
-    const cleanPhone = phone.replace(/\s+/g, '');
+    // Limpiar el número de teléfono y agregar +57
+    const cleanPhone = formatPhoneWithCode(phone.replace(/\s+/g, ''));
 
     const alreadyAdded = emergencyContacts.some((c) => 
-      c.phone.replace(/\s+/g, '') === cleanPhone
+      c.phone === cleanPhone
     );
     if (alreadyAdded) {
       showToast("Ese contacto ya fue agregado", 'warning');
@@ -1192,25 +1201,43 @@ const ContactsPage: React.FC = () => {
               }}
             />
             
-            <IonInput
-              label="Número de teléfono"
-              labelPlacement="stacked"
-              value={manualContactPhone}
-              onIonInput={(e) => setManualContactPhone(e.detail.value!)}
-              placeholder="Ej: +57 300 123 4567"
-              type="tel"
-              style={{
-                '--background': 'white',
-                '--border-radius': '12px',
-                '--padding-start': '16px',
-                '--padding-end': '16px',
-                '--padding-top': '12px',
-                '--padding-bottom': '12px',
-                marginBottom: '24px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                border: '1px solid #e2e8f0'
-              }}
-            />
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '8px', fontWeight: '600', fontSize: '0.9rem', color: '#64748b' }}>
+                Número de teléfono
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  fontWeight: '600',
+                  color: '#64748b',
+                  minWidth: '60px',
+                  textAlign: 'center',
+                  fontSize: '1rem'
+                }}>
+                  +57
+                </div>
+                <IonInput
+                  value={manualContactPhone}
+                  onIonInput={(e) => setManualContactPhone(e.detail.value!)}
+                  placeholder="300 123 4567"
+                  type="tel"
+                  style={{
+                    '--background': 'white',
+                    '--border-radius': '8px',
+                    '--padding-start': '16px',
+                    '--padding-end': '16px',
+                    '--padding-top': '12px',
+                    '--padding-bottom': '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    border: '1px solid #e2e8f0',
+                    flex: '1'
+                  }}
+                />
+              </div>
+            </div>
             
             <IonButton
               expand="block"
