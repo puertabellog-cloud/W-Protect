@@ -13,7 +13,8 @@ export interface User {
   name: string
   email: string
   phone: string
-  profile?: string
+  deviceId?: string
+  profile?: 'USER' | 'ADMIN'
   active?: boolean
   emergencyMode?: boolean
 }
@@ -74,6 +75,35 @@ export interface Location {
   address?: string;
 }
 
+// === TIPOS PARA RECURSOS Y ARTÍCULOS ===
+
+/**
+ * Artículo de recursos de seguridad
+ */
+export interface Article {
+  id: string;
+  titulo: string;
+  categoria: 'seguridad' | 'autodefensa' | 'legal' | 'psicologico' | 'tecnologia';
+  descripcion: string;
+  contenido: string; // HTML o Markdown
+  fechaPublicacion: string;
+  duracionLectura: number; // en minutos
+  tags: string[];
+  destacado: boolean;
+  icono: string; // nombre del icono de Ionic
+}
+
+/**
+ * Categoría de recursos
+ */
+export interface ResourceCategory {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  icono: string;
+  color: string;
+}
+
 // === TIPOS PARA SOLICITUDES DE EMERGENCIA ===
 
 export interface EmergencyAlertRequest {
@@ -83,6 +113,18 @@ export interface EmergencyAlertRequest {
   userId: number;          // ✅ Coincide con backend
   timestamp?: string;      // ✅ Opcional, se puede generar en backend
   contactosNotificados?: number; // ✅ Opcional
+}
+
+// === BIBLIOTECA (WLibrary) ===
+
+/**
+ * Recurso de la biblioteca — módulo /w/library (solo ADMIN)
+ */
+export interface WLibrary {
+  id?: number;
+  name: string;
+  description: string;
+  url: string;
 }
 
 // === ALIAS PARA COMPATIBILIDAD ===

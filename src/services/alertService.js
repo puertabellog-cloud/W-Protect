@@ -1,4 +1,4 @@
-import apiClient from '../api/axiosConfig';
+import { apiClient } from '../api/apiClient';
 
 const createAlert = async (alertData) => {
   try {

@@ -1,5 +1,13 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_URL, REQUEST_TIMEOUT } from '../config/api';
+import { clearSession, getSession } from '../services/sessionService';
+import { debugError, debugLog } from '../utils/debug';
+
+// Toast global para 403 (sin depender de hooks de React)
+const showForbiddenAlert = () => {
+  // Dispara un evento personalizado que la app puede escuchar para mostrar un toast
+  window.dispatchEvent(new CustomEvent('w-protect-forbidden'));
+};
 
 // Configuración del cliente Axios
 const apiClient = axios.create({
@@ -10,20 +18,50 @@ const apiClient = axios.create({
   },
 });
 
-// Interceptor para requests (agregar token de autenticación, etc.)
+const isProtectedWRoute = (url: string): boolean => {
+  return /^\/w\//.test(url) || /\/w\//.test(url);
+};
+
+const isPublicRegisterRoute = (url: string, method?: string): boolean => {
+  const normalizedMethod = (method || 'get').toLowerCase();
+  return normalizedMethod === 'post' && /\/w\/users\/save$/.test(url);
+};
+
+const isPublicEmailLoginRoute = (url: string, method?: string): boolean => {
+  const normalizedMethod = (method || 'get').toLowerCase();
+  return normalizedMethod === 'get' && /\/w\/users\/email\/.+/.test(url);
+};
+
+const isPublicRoute = (url: string, method?: string): boolean => {
+  return isPublicRegisterRoute(url, method) || isPublicEmailLoginRoute(url, method);
+};
+
+// Interceptor para requests (headers de seguridad por sesión)
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Agregar token de autenticación si existe
-    const token = localStorage.getItem('authToken');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const url = config.url || '';
+    const method = config.method;
+
+    if (isProtectedWRoute(url) && !isPublicRoute(url, method) && config.headers) {
+      const session = getSession();
+
+      if (session?.userId && session?.deviceId) {
+        config.headers['X-User-Id'] = String(session.userId);
+        config.headers['X-Device-Id'] = session.deviceId;
+      }
     }
     
-    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    debugLog('API', 'request', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      hasSession: Boolean(getSession()),
+      xUserId: config.headers?.['X-User-Id'],
+      xDeviceId: config.headers?.['X-Device-Id'],
+    });
     return config;
   },
   (error: any) => {
-    console.error('❌ Request Error:', error);
+    debugError('API', 'request error', error);
     return Promise.reject(error);
   }
 );
@@ -31,17 +69,30 @@ apiClient.interceptors.request.use(
 // Interceptor para responses (manejo de errores globales)
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+    debugLog('API', 'response', {
+      status: response.status,
+      url: response.config.url,
+    });
     return response;
   },
   (error: AxiosError) => {
-    console.error(`❌ API Error: ${error.response?.status} ${error.config?.url}`, error.response?.data);
+    debugError('API', 'response error', {
+      status: error.response?.status,
+      url: error.config?.url,
+      data: error.response?.data,
+      message: error.message,
+    });
     
-    // Manejo de errores específicos
+    // Sesión inválida o headers faltantes
     if (error.response?.status === 401) {
-      // Token expirado o no válido
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      clearSession();
+      localStorage.removeItem('w-protect-registered');
+      window.location.href = '/';
+    }
+
+    // Sin permisos de ADMIN
+    if (error.response?.status === 403) {
+      showForbiddenAlert();
     }
     
     return Promise.reject(error);

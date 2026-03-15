@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
     getByEmail: '/w/users/email', // GET /w/users/email/{email}
     save: '/w/users/save', // PUT /w/users/save
     getByDevice: '/w/users/device', // GET /w/users/device/{id}
+    getAll: '/w/users', // GET /w/users
   },
   
   // Contacts Management (WcontactController)
@@ -27,7 +28,28 @@ export const API_ENDPOINTS = {
   
   // Alerts Management (WalertController)
   alerts: {
-    save: '/w/alerts/save', // PUT /w/alerts/save
+    save: '/w/alerts',          // POST /w/alerts
+    close: '/w/alerts',         // PUT /w/alerts/{id}/close
+    locations: '/w/alerts',     // POST /w/alerts/{alertId}/locations
+  },
+
+  // Library Management — admin edita, user/admin pueden leer según backend
+  library: {
+    getAll: '/w/library',              // GET  /w/library
+    getById: '/w/library',             // GET  /w/library/{id}
+    save: '/w/library/save',           // POST /w/library/save
+    delete: '/w/library',              // DELETE /w/library/{id}
+    edit: '/w/library/edit',           // PATCH /w/library/edit/{id}
+  },
+
+  // Resources Management (compatibilidad si existe controller dedicado)
+  resources: {
+    categories: '/w/resources/categories',
+    articles: '/w/resources/articles',
+    articleById: '/w/resources/articles',
+    articlesByCategory: '/w/resources/articles/category',
+    featuredArticles: '/w/resources/articles/featured',
+    searchArticles: '/w/resources/articles/search',
   },
   
   // Location Tracking (nuevo endpoint para tracking)

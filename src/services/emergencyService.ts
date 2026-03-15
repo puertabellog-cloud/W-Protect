@@ -35,17 +35,17 @@ export const deleteEmergencyContact = deleteContact;
  */
 export const createEmergencyAlert = async (
   userId: number, 
-  mensaje: string,  // ✅ Cambiado de "message" a "mensaje"
+  mensaje: string,
   alertType?: string,
-  location?: { latitud: string; longitud: string } // ✅ Cambiado a string
+  location?: { latitud: string; longitud: string }
 ): Promise<Alert> => {
   const alert: Alert = {
     userId,
-    mensaje,     // ✅ Campo correcto
-    latitud: location?.latitud || '0',    // ✅ String con valor por defecto
-    longitud: location?.longitud || '0',  // ✅ String con valor por defecto
+    message: mensaje,
+    latitud: location?.latitud || '0',
+    longitud: location?.longitud || '0',
     timestamp: new Date().toISOString(),
-    contactosNotificados: 0
+    contactsNotified: 0
   };
   
   return saveAlert(alert);
@@ -76,11 +76,11 @@ export const sendEmergencyAlertFromMap = async (
   // Crear la alerta con el formato EXACTO que espera Walerta
   const alert: Alert = {
     userId,
-    mensaje,                 // ✅ Campo correcto (no "message")
-    latitud: latitudStr,     // ✅ String como espera el backend
-    longitud: longitudStr,   // ✅ String como espera el backend
+    message: mensaje,
+    latitud: latitudStr,
+    longitud: longitudStr,
     timestamp: new Date().toISOString(),
-    contactosNotificados: 0  // Inicializar en 0
+    contactsNotified: 0
   };
   
   console.log('🚨 Alerta final para Walerta:', JSON.stringify(alert, null, 2));

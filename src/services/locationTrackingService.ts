@@ -180,6 +180,7 @@ export const startLocationTracking = (
   callbacks?: {
     onLocationUpdate?: (data: LocationTrackingData) => void;
     onError?: (error: string) => void;
+    onAlertExpired?: () => void;
   }
 ) => locationTrackingService.start(alertId, callbacks);
 

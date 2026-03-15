@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser } from '../../services/authService';
-import { saveAlert, closeAlert, getUserByEmail } from '../../services/springBootServices';
+import { saveAlert, closeAlert } from '../../services/springBootServices';
 import { startLocationTracking, stopLocationTracking, stopTracking } from '../../services/locationTrackingService';
+import { getSession } from '../../services/sessionService';
 
 import {
   IonPage,
@@ -59,41 +60,12 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
       setEmergencyContacts(JSON.parse(savedContacts));
     }
 
-    // Cargar perfil del usuario
-    const fetchCurrentUser = async () => {
-      try {
-        // Obtener email del usuario desde localStorage
-        let userData = localStorage.getItem('w-protect-user');
-        if (!userData) {
-          userData = localStorage.getItem('wprotect_registration');
-        }
-        
-        if (!userData) {
-          console.warn('No hay datos de usuario en localStorage');
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        if (!user.email) {
-          console.warn('No se encontró email en los datos de usuario');
-          return;
-        }
-
-        // Llamada al backend usando el email
-        const profile = await getUserByEmail(user.email);
-        console.log("Perfil obtenido para emergencia:", profile);
-        
-        if (profile && typeof profile.id === 'number') {
-          setCurrentUserId(profile.id);
-        } else {
-          console.warn("Perfil inválido o no encontrado para emergencia.");
-        }
-      } catch (error) {
-        console.error("Error obteniendo el perfil del usuario para emergencia:", error);
-      }
-    };
-
-    fetchCurrentUser();
+    const session = getSession();
+    if (session?.userId) {
+      setCurrentUserId(session.userId);
+    } else {
+      console.warn('No hay sesión activa con userId para emergencia.');
+    }
 
   }, []);
 

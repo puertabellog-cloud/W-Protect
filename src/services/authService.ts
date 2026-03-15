@@ -17,6 +17,10 @@ export const login = async (credentials: LoginCredentials): Promise<User> => {
 
     const user = await getUserByEmail(credentials.email)
 
+    if (!user) {
+      throw new Error('Usuario no encontrado')
+    }
+
     localStorage.setItem('user', JSON.stringify(user))
     localStorage.setItem('isLoggedIn', 'true')
 

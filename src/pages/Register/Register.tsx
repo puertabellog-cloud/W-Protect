@@ -12,12 +12,12 @@ import {
 import {
   personOutline,
   callOutline,
-  mailOutline,
-  chatbubbleOutline
+  mailOutline
 } from 'ionicons/icons';
-import { saveUser } from '../../services/springBootServices';
+import { getUserByEmail, saveUser } from '../../services/springBootServices';
 import { useDevice } from '../../context/DeviceContext';
 import { sendWelcomeEmail } from '../../services/emailService';
+import { setSession } from '../../services/sessionService';
 
 interface RegisterProps {
   onRegistrationComplete: () => void;
@@ -51,6 +51,10 @@ export const Register: React.FC<RegisterProps> = ({
            form.email.includes('@');
   };
 
+  const hasValidEmail = () => {
+    return form.email.trim() && form.email.includes('@');
+  };
+
   const getInitials = (name: string): string => {
     if (!name.trim()) return '';
     const words = name.trim().split(' ');
@@ -62,42 +66,112 @@ export const Register: React.FC<RegisterProps> = ({
 
 
 
+  const saveLocalProfile = () => {
+    const userData = {
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      mensaje: form.emergencyMessage.trim() || 'Necesito ayuda urgente',
+      registeredAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('w-protect-registered', 'true');
+    localStorage.setItem('w-protect-user', JSON.stringify(userData));
+    localStorage.setItem('wprotect_registration', JSON.stringify(userData));
+  };
+
+  const completeAccess = () => {
+    setTimeout(() => {
+      onRegistrationComplete();
+    }, 600);
+  };
+
+  const resolveDeviceId = (preferred?: string | null): string | null => {
+    const fromPreferred = preferred?.trim();
+    if (fromPreferred) return fromPreferred;
+
+    const fromContext = deviceId?.trim();
+    if (fromContext) return fromContext;
+
+    const fromStorage = localStorage.getItem('device_id')?.trim();
+    if (fromStorage) return fromStorage;
+
+    return null;
+  };
+
   const handleRegister = async () => {
-    if (!isFormValid()) {
-      setToastMessage('Por favor completa todos los campos obligatorios');
+    if (!hasValidEmail()) {
+      setToastMessage('Ingresa un email valido para continuar');
       return;
     }
 
     setIsLoading(true);
     try {
-      // PRIMERO: Guardar datos localmente (siempre funciona)
-      const userData = {
+      // 1) Intentar login por email si el usuario ya existe
+      const existingUser = await getUserByEmail(form.email.trim());
+
+      if (existingUser?.id) {
+        const sessionDeviceId = resolveDeviceId(existingUser.deviceId);
+
+        if (!sessionDeviceId) {
+          setToastMessage('No se pudo resolver el deviceId para iniciar sesion.');
+          return;
+        }
+
+        localStorage.setItem('device_id', sessionDeviceId);
+
+        setSession({
+          userId: existingUser.id,
+          deviceId: sessionDeviceId,
+          email: existingUser.email,
+          profile: existingUser.profile ?? 'USER',
+        });
+
+        localStorage.setItem('w-protect-registered', 'true');
+        localStorage.setItem('w-protect-user', JSON.stringify(existingUser));
+        localStorage.setItem('wprotect_registration', JSON.stringify(existingUser));
+
+        setToastMessage('Ingreso exitoso. Bienvenida de nuevo.');
+        completeAccess();
+        return;
+      }
+
+      // 2) Si no existe, crear cuenta con el flujo actual
+      if (!isFormValid()) {
+        setToastMessage('Usuario nuevo: completa nombre y telefono para registrarte.');
+        return;
+      }
+
+      const sessionDeviceId = resolveDeviceId();
+
+      if (!sessionDeviceId) {
+        setToastMessage('No se pudo obtener el deviceId. Intenta nuevamente.');
+        return;
+      }
+
+      localStorage.setItem('device_id', sessionDeviceId);
+
+      saveLocalProfile();
+
+      const savedUser = await saveUser({
         name: form.name.trim(),
         phone: form.phone.trim(),
         email: form.email.trim(),
-        mensaje: form.emergencyMessage.trim() || 'Necesito ayuda urgente',
-        registeredAt: new Date().toISOString()
-      };
-      
-      localStorage.setItem('w-protect-registered', 'true');
-      localStorage.setItem('w-protect-user', JSON.stringify(userData));
-      // También guardar con la clave que espera el Profile por compatibilidad
-      localStorage.setItem('wprotect_registration', JSON.stringify(userData));
+        deviceId: sessionDeviceId,
+        active: true
+      });
 
-      // SEGUNDO: Intentar guardar en API (puede fallar)
-      try {
-        await saveUser({
-          name: form.name.trim(),
-          phone: form.phone.trim(),
-          email: form.email.trim(),
-          active: true
+      if (savedUser?.id) {
+        setSession({
+          userId: savedUser.id,
+          deviceId: sessionDeviceId,
+          email: savedUser.email || form.email.trim(),
+          profile: savedUser.profile ?? 'USER',
         });
-        console.log('✅ Perfil guardado en API exitosamente');
-      } catch (apiError) {
-        console.warn('⚠️ Error guardando en API, pero datos guardados localmente:', apiError);
       }
 
-      // TERCERO: Intentar enviar email (puede fallar)
+      console.log('✅ Perfil guardado en API exitosamente');
+
       setToastMessage('¡Registro exitoso! Enviando email de bienvenida...');
       
       try {
@@ -112,14 +186,12 @@ export const Register: React.FC<RegisterProps> = ({
         console.warn('⚠️ Error enviando email:', emailError);
         setToastMessage('¡Registro exitoso! Tu cuenta está activa 💗');
       }
-      
-      setTimeout(() => {
-        onRegistrationComplete();
-      }, 3000);
+
+      completeAccess();
 
     } catch (error) {
       console.error('Error en registro:', error);
-      setToastMessage('Error al registrarse. Por favor intenta nuevamente');
+      setToastMessage('No se pudo validar el usuario. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -421,8 +493,8 @@ export const Register: React.FC<RegisterProps> = ({
             </div>
 
             {/* Title */}
-            <h1 className="register-title">Registro</h1>
-            <p className="register-subtitle">Crea tu cuenta de seguridad</p>
+            <h1 className="register-title">Ingresar</h1>
+            <p className="register-subtitle">Ingresa con tu email o crea tu cuenta</p>
 
             {/* User Avatar Preview */}
             {form.name.trim() && (
@@ -483,9 +555,9 @@ export const Register: React.FC<RegisterProps> = ({
             <button
               className="register-button"
               onClick={handleRegister}
-              disabled={!isFormValid() || isLoading}
+              disabled={!hasValidEmail() || isLoading}
             >
-              {isLoading ? 'Creando cuenta...' : 'Crear mi cuenta W-Protect'}
+              {isLoading ? 'Validando acceso...' : 'Ingresar'}
             </button>
 
             {/* Switch to Login */}

@@ -16,7 +16,7 @@ export const getProfileByDevice = getUserByDeviceId;
 /**
  * Obtener perfil de usuario actual (requiere deviceId)
  */
-export const getUserProfile = (deviceId: string): Promise<User> => {
+export const getUserProfile = (deviceId: string): Promise<User | null> => {
   return getUserByDeviceId(deviceId);
 };
 
@@ -42,7 +42,7 @@ export const createUser = async (userData: RegisterData): Promise<User> => {
   const newUser: User = {
     name: userData.name,
     email: userData.email,
-    phone: userData.phone,
+    phone: userData.phone ?? '',
     deviceId: userData.deviceId,
     active: true
   };
@@ -54,12 +54,8 @@ export const createUser = async (userData: RegisterData): Promise<User> => {
  * Verificar si un usuario existe por email
  */
 export const userExists = async (email: string): Promise<boolean> => {
-  try {
-    await getUserByEmail(email);
-    return true;
-  } catch (error) {
-    return false;
-  }
+  const user = await getUserByEmail(email);
+  return user !== null;
 };
 
 // === EXPORTACIONES PARA COMPATIBILIDAD ===

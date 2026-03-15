@@ -12,13 +12,12 @@ import {
   peopleOutline, callOutline, locationOutline, personAdd, close, checkmark
 } from 'ionicons/icons';
 import { Contacts } from '@capacitor-community/contacts';
+import { Capacitor } from '@capacitor/core';
 import { AppHeader } from '../../components/AppHeader';
 import { getInitials } from '../../utils/avatarUtils';
 import { getContactsByUserId, createContact, updateContact, saveContact, deleteContact as deleteContactService } from '../../services/springBootServices';
-import { getUserByEmail } from '../../services/springBootServices';
-import { Contact, User } from '../../types';
-import { useDevice } from "../../context/DeviceContext";
-import { apiClient } from '../../api/apiClient';
+import { Contact } from '../../types';
+import { getSession } from '../../services/sessionService';
 
 // Tipos específicos para este componente
 interface ContactFromDevice {
@@ -63,47 +62,19 @@ const ContactsPage: React.FC = () => {
   /* ----- NUEVO ESTADO PARA EL USER ID ----- */
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
-  /* ----- CONTEXTO DEL DISPOSITIVO (para obtener deviceId) ----- */
-  const { deviceId } = useDevice();  
   /* --------------------------------------------------------------
-     1️⃣  CARGAR EL PERFIL CUANDO EL COMPONENTE SE MONTA
+     1️⃣  CARGAR EL USER ID DESDE LA SESIÓN
      -------------------------------------------------------------- */
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        // Obtener email del usuario desde localStorage
-        let userData = localStorage.getItem('w-protect-user');
-        if (!userData) {
-          userData = localStorage.getItem('wprotect_registration');
-        }
-        
-        if (!userData) {
-          console.warn('No hay datos de usuario en localStorage');
-          return;
-        }
+    const session = getSession();
 
-        const user = JSON.parse(userData);
-        if (!user.email) {
-          console.warn('No se encontró email en los datos de usuario');
-          return;
-        }
+    if (session?.userId) {
+      setCurrentUserId(session.userId);
+    } else {
+      console.warn('No hay sesión activa con userId.');
+    }
 
-        // Llamada al backend usando el email
-        const profile = await getUserByEmail(user.email);
-        console.log("Perfil obtenido:", profile);
-        
-        if (profile && typeof profile.id === 'number') {
-          setCurrentUserId(profile.id);
-          setProfileReady(true);
-        } else {
-          console.warn("Perfil inválido o no encontrado.");
-        }
-      } catch (error) {
-        console.error("Error obteniendo el perfil del usuario:", error);
-      }
-    };
-
-    fetchCurrentUser();
+    setProfileReady(true);
   }, []);
 
 
@@ -312,7 +283,7 @@ const ContactsPage: React.FC = () => {
   const isWeb = (() => {
     try {
       // Método más confiable para detectar web
-      return !window.Capacitor || !window.Capacitor.isNativePlatform?.();
+      return !Capacitor.isNativePlatform();
     } catch {
       // Fallback si Capacitor no está disponible
       return typeof window !== 'undefined' && 
@@ -377,7 +348,7 @@ const ContactsPage: React.FC = () => {
     }
 
     // Verificación adicional para asegurar que no estamos en web
-    if (!window.Capacitor?.isNativePlatform?.()) {
+    if (!Capacitor.isNativePlatform()) {
       showToast('Esta función solo está disponible en dispositivos móviles', 'warning');
       return;
     }

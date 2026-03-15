@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Register } from '../pages/Register/Register';
 import Home from '../pages/Home/Home';
+import { getSession, SESSION_CHANGED_EVENT } from '../services/sessionService';
+import { debugLog } from '../utils/debug';
 
 interface AuthWrapperProps {
   children?: React.ReactNode;
@@ -10,21 +12,40 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Verificar si el usuario ya está registrado
     const checkRegistration = () => {
       const registered = localStorage.getItem('w-protect-registered');
-      setIsRegistered(registered === 'true');
+      const hasSession = Boolean(getSession());
+      const nextValue = registered === 'true' || hasSession;
+
+      debugLog('AuthWrapper', 'checkRegistration', {
+        registered,
+        hasSession,
+        nextValue,
+        path: window.location.pathname,
+      });
+
+      setIsRegistered(nextValue);
     };
 
     checkRegistration();
+
+    window.addEventListener(SESSION_CHANGED_EVENT, checkRegistration);
+    window.addEventListener('storage', checkRegistration);
+
+    return () => {
+      window.removeEventListener(SESSION_CHANGED_EVENT, checkRegistration);
+      window.removeEventListener('storage', checkRegistration);
+    };
   }, []);
 
   const handleRegistrationComplete = () => {
+    debugLog('AuthWrapper', 'registrationComplete', { path: window.location.pathname });
     setIsRegistered(true);
   };
 
   // Mostrar loading mientras verificamos el estado
   if (isRegistered === null) {
+    debugLog('AuthWrapper', 'render loading', { path: window.location.pathname });
     return (
       <div style={{
         display: 'flex',
@@ -52,9 +73,14 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
 
   // Si no está registrado, mostrar pantalla de registro
   if (!isRegistered) {
+    debugLog('AuthWrapper', 'render register', { path: window.location.pathname });
     return <Register onRegistrationComplete={handleRegistrationComplete} />;
   }
 
-  // Si está registrado, mostrar el componente hijo o la aplicación principal
+  debugLog('AuthWrapper', 'render content', {
+    hasChildren: Boolean(children),
+    path: window.location.pathname,
+  });
+
   return children ? <>{children}</> : <Home />;
 };

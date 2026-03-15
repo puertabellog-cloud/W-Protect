@@ -5,25 +5,74 @@
 
 import { apiClient } from '../api/apiClient'
 import { API_ENDPOINTS } from '../config/api'
-import { User, Contact, Alert } from '../types'
+import { User, Contact, Alert, Article, ResourceCategory } from '../types'
+import { getSession, setSession } from './sessionService'
+import axios from 'axios'
 
 /* =========================================================
    USUARIOS
 ========================================================= */
 
 /**
+ * Obtener usuario por deviceId
+ */
+export const getUserByDeviceId = async (deviceId: string): Promise<User | null> => {
+  try {
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.users.getByDevice}/${deviceId}`
+    )
+
+    const user: User = response.data
+    const currentSession = getSession()
+    if (currentSession && user.id) {
+      setSession({
+        ...currentSession,
+        userId: user.id,
+        email: user.email,
+        profile: user.profile ?? currentSession.profile,
+      })
+    }
+
+    return user
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null
+    }
+
+    console.error('Error al obtener usuario por deviceId:', error)
+    throw new Error('Error al obtener usuario por deviceId')
+  }
+}
+
+/**
  * Obtener usuario por email
  */
-export const getUserByEmail = async (email: string): Promise<User> => {
+export const getUserByEmail = async (email: string): Promise<User | null> => {
   try {
 
     const response = await apiClient.get(
       `${API_ENDPOINTS.users.getByEmail}/${email}`
     )
 
-    return response.data
+    // Refrescar sesión con el profile actualizado que devuelve el backend
+    const user: User = response.data;
+    const currentSession = getSession();
+    if (currentSession && user.id) {
+      setSession({
+        ...currentSession,
+        userId: user.id,
+        email: user.email,
+        profile: user.profile ?? currentSession.profile,
+      });
+    }
+
+    return user;
 
   } catch (error) {
+
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null
+    }
 
     console.error('Error al obtener usuario por email:', error)
     throw new Error('Error al obtener usuario por email')
@@ -43,7 +92,8 @@ export const saveUser = async (user: User): Promise<User> => {
       phone: user.phone,
       profile: user.profile ?? 'USER',
       active: user.active ?? true,
-      emergencyMode: user.emergencyMode ?? false
+      emergencyMode: user.emergencyMode ?? false,
+      deviceId: user.deviceId
     }
 
     const response = await apiClient.post(
@@ -61,6 +111,62 @@ export const saveUser = async (user: User): Promise<User> => {
   }
 }
 
+type UsersListResponse = User[] | { content?: User[]; data?: User[]; users?: User[] };
+
+const toUsersArray = (payload: unknown): { users: User[]; recognized: boolean } => {
+  if (Array.isArray(payload)) {
+    return { users: payload as User[], recognized: true };
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { content?: User[] }).content)) {
+    return { users: (payload as { content: User[] }).content, recognized: true };
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: User[] }).data)) {
+    return { users: (payload as { data: User[] }).data, recognized: true };
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { users?: User[] }).users)) {
+    return { users: (payload as { users: User[] }).users, recognized: true };
+  }
+
+  return { users: [], recognized: false };
+};
+
+/**
+ * Obtener todos los usuarios para el panel admin.
+ * Prueba varios endpoints compatibles para evitar bloquear UI
+ * mientras se confirma la ruta final del backend.
+ */
+export const getAllUsersForAdmin = async (): Promise<User[]> => {
+  const candidateEndpoints = Array.from(new Set([
+    API_ENDPOINTS.users.getAll,
+    '/w/users/all',
+    '/w/users/list',
+  ]));
+
+  for (const endpoint of candidateEndpoints) {
+    try {
+      const response = await apiClient.get<UsersListResponse>(endpoint);
+      const parsed = toUsersArray(response.data);
+
+      // Algunos backends responden 200 con body vacío; en ese caso seguimos al siguiente endpoint.
+      if (!parsed.recognized) {
+        continue;
+      }
+
+      return parsed.users;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('No se encontró un endpoint de listado de usuarios disponible');
+}
+
 
 /* =========================================================
    CONTACTOS
@@ -72,11 +178,11 @@ export const saveUser = async (user: User): Promise<User> => {
 export const getContactsByUserId = async (userId: number): Promise<Contact[]> => {
   try {
 
-    const response = await apiClient.get(
+    const response = await apiClient.get<Contact[]>(
       `${API_ENDPOINTS.contacts.getByUser}/${userId}`
     )
 
-    console.log('📋 Contactos cargados:', response.data.length, 'contactos con IDs:', response.data.map(c => c.id));
+    console.log('📋 Contactos cargados:', response.data.length, 'contactos con IDs:', response.data.map((c: Contact) => c.id));
     return response.data
 
   } catch (error) {
@@ -195,6 +301,105 @@ export const deleteContact = async (contactId: number): Promise<void> => {
   }
 }
 
+
+/* =========================================================
+   GESTIÓN DE RECURSOS Y ARTÍCULOS
+========================================================= */
+
+/**
+ * Obtener todas las categorías de recursos
+ */
+export const getResourceCategories = async (): Promise<ResourceCategory[]> => {
+  try {
+    console.log('📚 Obteniendo categorías de recursos...')
+    const response = await apiClient.get(API_ENDPOINTS.resources.categories)
+    console.log('✅ Categorías obtenidas:', response.data.length)
+    return response.data
+  } catch (error) {
+    console.error('Error al obtener categorías:', error)
+    throw new Error('Error al obtener categorías de recursos')
+  }
+}
+
+/**
+ * Obtener todos los artículos
+ */
+export const getAllArticles = async (): Promise<Article[]> => {
+  try {
+    console.log('📖 Obteniendo todos los artículos...')
+    const response = await apiClient.get(API_ENDPOINTS.resources.articles)
+    console.log('✅ Artículos obtenidos:', response.data.length)
+    return response.data
+  } catch (error) {
+    console.error('Error al obtener artículos:', error)
+    throw new Error('Error al obtener artículos')
+  }
+}
+
+/**
+ * Obtener artículo por ID
+ */
+export const getArticleById = async (articleId: string): Promise<Article | null> => {
+  try {
+    console.log('🔍 Obteniendo artículo ID:', articleId)
+    const response = await apiClient.get(`${API_ENDPOINTS.resources.articleById}/${articleId}`)
+    console.log('✅ Artículo obtenido:', response.data.titulo)
+    return response.data
+  } catch (error) {
+    console.error('Error al obtener artículo:', error)
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null // Artículo no encontrado
+    }
+    throw new Error('Error al obtener artículo')
+  }
+}
+
+/**
+ * Obtener artículos por categoría
+ */
+export const getArticlesByCategory = async (categoria: string): Promise<Article[]> => {
+  try {
+    console.log('🏷️ Obteniendo artículos de categoría:', categoria)
+    const response = await apiClient.get(`${API_ENDPOINTS.resources.articlesByCategory}/${categoria}`)
+    console.log('✅ Artículos de categoría obtenidos:', response.data.length)
+    return response.data
+  } catch (error) {
+    console.error('Error al obtener artículos por categoría:', error)
+    throw new Error('Error al obtener artículos por categoría')
+  }
+}
+
+/**
+ * Obtener artículos destacados
+ */
+export const getFeaturedArticles = async (): Promise<Article[]> => {
+  try {
+    console.log('⭐ Obteniendo artículos destacados...')
+    const response = await apiClient.get(API_ENDPOINTS.resources.featuredArticles)
+    console.log('✅ Artículos destacados obtenidos:', response.data.length)
+    return response.data
+  } catch (error) {
+    console.error('Error al obtener artículos destacados:', error)
+    throw new Error('Error al obtener artículos destacados')
+  }
+}
+
+/**
+ * Buscar artículos por término
+ */
+export const searchArticles = async (searchTerm: string): Promise<Article[]> => {
+  try {
+    console.log('🔍 Buscando artículos con término:', searchTerm)
+    const response = await apiClient.get(
+      `${API_ENDPOINTS.resources.searchArticles}?q=${encodeURIComponent(searchTerm)}`
+    )
+    console.log('✅ Resultados de búsqueda:', response.data.length)
+    return response.data
+  } catch (error) {
+    console.error('Error al buscar artículos:', error)
+    throw new Error('Error al buscar artículos')
+  }
+}
 
 /* =========================================================
    ALERTAS
