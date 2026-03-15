@@ -111,6 +111,37 @@ export const saveUser = async (user: User): Promise<User> => {
   }
 }
 
+/**
+ * Actualizar perfil de usuario existente con PATCH.
+ * Solo envía los campos editables del formulario de perfil.
+ */
+export const patchUserProfile = async (
+  userId: number,
+  data: Pick<User, 'name' | 'email' | 'phone'>
+): Promise<User> => {
+  try {
+
+    const payload = {
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+    }
+
+    const response = await apiClient.patch(
+      `${API_ENDPOINTS.users.patch}/${userId}`,
+      payload
+    )
+
+    return response.data
+
+  } catch (error) {
+
+    console.error('Error al actualizar perfil:', error)
+    throw new Error('Error al actualizar perfil')
+
+  }
+}
+
 type UsersListResponse = User[] | { content?: User[]; data?: User[]; users?: User[] };
 
 const toUsersArray = (payload: unknown): { users: User[]; recognized: boolean } => {

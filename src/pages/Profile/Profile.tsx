@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { saveUser, getUserByEmail } from '../../services/springBootServices';
+import { patchUserProfile, getUserByEmail } from '../../services/springBootServices';
 import { useHistory } from 'react-router-dom';
 import { 
   IonPage, 
@@ -20,6 +20,7 @@ import {
   IonSpinner
 } from '@ionic/react';
 import { useDevice } from "../../context/DeviceContext";
+import { getSession, setSession } from '../../services/sessionService';
 
 const Profile: React.FC = () => {
 
@@ -144,13 +145,29 @@ const Profile: React.FC = () => {
 
     try {
 
-      await saveUser({
+      const session = getSession();
+
+      if (!session?.userId) {
+        throw new Error('No hay usuario en sesión');
+      }
+
+      const savedUser = await patchUserProfile(session.userId, {
         name: form.name,
         email: form.email,
         phone: form.phone
       });
 
-      localStorage.removeItem('wprotect_registration');
+      localStorage.setItem('w-protect-user', JSON.stringify(savedUser));
+
+      const registrationData = localStorage.getItem('wprotect_registration');
+      if (registrationData) {
+        localStorage.setItem('wprotect_registration', JSON.stringify(savedUser));
+      }
+
+      setSession({
+        ...session,
+        email: savedUser.email,
+      });
 
       setSuccess(true);
 

@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     save: '/w/users/save', // PUT /w/users/save
     getByDevice: '/w/users/device', // GET /w/users/device/{id}
     getAll: '/w/users', // GET /w/users
+    patch: '/w/users', // PATCH /w/users/{id}
   },
   
   // Contacts Management (WcontactController)
