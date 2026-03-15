@@ -28,6 +28,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         
         const info = await Device.getId();
         setDeviceId(info.identifier); // único por dispositivo
+        localStorage.setItem('device_id', info.identifier);
         
         console.log(`🔑 Device ID obtenido: ${info.identifier}`);
       } catch (err) {
