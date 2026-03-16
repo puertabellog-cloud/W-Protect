@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentUser } from '../../services/authService';
-import { saveAlert, closeAlert } from '../../services/springBootServices';
-import { startLocationTracking, stopLocationTracking, stopTracking } from '../../services/locationTrackingService';
+import { saveAlert, closeAlert, getAlertStatusById } from '../../services/springBootServices';
+import { startLocationTracking, stopTracking } from '../../services/locationTrackingService';
 import { getSession } from '../../services/sessionService';
 
 import {
@@ -34,6 +33,7 @@ interface EmergencyAlertProps {
 }
 
 export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
+  const ALERT_META_KEY = 'alertMeta';
 
   const [isActivated, setIsActivated] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -47,6 +47,32 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [alertStatus, setAlertStatus] = useState<'ACTIVE' | 'CLOSED' | 'EXPIRED'>('ACTIVE');
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+
+  const normalizeStatus = (raw?: string | null): 'ACTIVE' | 'CLOSED' | 'EXPIRED' => {
+    const status = (raw ?? '').trim().toUpperCase();
+    if (!status) return 'ACTIVE';
+    if (status.includes('CLOSE') || status.includes('RESOL') || status === 'INACTIVE') return 'CLOSED';
+    if (status.includes('EXPIR')) return 'EXPIRED';
+    return 'ACTIVE';
+  };
+
+  const resetAlertVisualState = (reason: string, status: 'CLOSED' | 'EXPIRED' = 'EXPIRED') => {
+    stopTracking(reason);
+    setIsTracking(false);
+    setIsActivated(false);
+    setAlertSent(false);
+    setCountdown(0);
+    setAlertStatus(status);
+    setAlertId(null);
+    setExpiresAt(null);
+    localStorage.removeItem('alertId');
+    localStorage.removeItem(ALERT_META_KEY);
+  };
+
+  const persistAlertMeta = (meta: { id: number; status: string; expiresAt?: string | null }) => {
+    localStorage.setItem(ALERT_META_KEY, JSON.stringify(meta));
+  };
 
   /* =========================
      Cargar perfil del usuario y contactos guardados
@@ -77,6 +103,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
 
     // Verificar si ya hay una alerta activa
     const stored = localStorage.getItem("alertId");
+    const storedMetaRaw = localStorage.getItem(ALERT_META_KEY);
     
     if (stored) return; // Ya hay alerta activa, no activar automáticamente
     
@@ -105,9 +132,22 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
 
       console.log("Restaurando alerta activa:", id);
 
+      const storedMeta = storedMetaRaw ? JSON.parse(storedMetaRaw) : null;
+      const restoredStatus = normalizeStatus(storedMeta?.status);
+      const restoredExpiresAt = storedMeta?.expiresAt ?? null;
+
       setAlertId(id);
-      setAlertSent(true);
-      setAlertStatus('ACTIVE');
+      setAlertSent(restoredStatus === 'ACTIVE');
+      setAlertStatus(restoredStatus);
+      setExpiresAt(restoredExpiresAt);
+      setIsActivated(restoredStatus === 'ACTIVE');
+
+      const expiredLocally = restoredExpiresAt ? Date.now() >= new Date(restoredExpiresAt).getTime() : false;
+
+      if (restoredStatus !== 'ACTIVE' || expiredLocally) {
+        resetAlertVisualState('restore_expired_or_closed', expiredLocally ? 'EXPIRED' : 'CLOSED');
+        return;
+      }
 
       const timer = setTimeout(() => {
         setIsTracking(true);
@@ -122,8 +162,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
           },
           onAlertExpired: () => {
             console.log("⏰ Alerta expirada - Deteniendo tracking");
-            setAlertStatus('EXPIRED');
-            setIsTracking(false);
+            resetAlertVisualState('tracking_onAlertExpired', 'EXPIRED');
             setTrackingError('La alerta ya no está activa');
           }
         });
@@ -138,6 +177,70 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
     }
 
   }, []);
+
+  /* =========================
+     Auto-cierre visual por expiresAt
+  ========================== */
+
+  useEffect(() => {
+    if (!alertSent || !alertId || !expiresAt) return;
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+    if (Number.isNaN(expiresAtMs)) return;
+
+    const remaining = expiresAtMs - Date.now();
+    if (remaining <= 0) {
+      resetAlertVisualState('local_expiration_check', 'EXPIRED');
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setTrackingError('La alerta expiró localmente por tiempo');
+      resetAlertVisualState('local_expiration_timeout', 'EXPIRED');
+    }, remaining);
+
+    return () => clearTimeout(timeoutId);
+  }, [alertSent, alertId, expiresAt]);
+
+  /* =========================
+     Polling de sincronización con backend (cada 3s)
+  ========================== */
+
+  useEffect(() => {
+    if (!alertSent || !alertId) return;
+
+    let cancelled = false;
+    const intervalId = setInterval(async () => {
+      try {
+        const remote = await getAlertStatusById(alertId);
+
+        // Si backend aún no tiene endpoint de estado, mantenemos fallback local por expiresAt.
+        if (!remote || cancelled) return;
+
+        const remoteStatus = normalizeStatus((remote as any).status ?? (remote as any).estado ?? (remote as any).state);
+        const remoteExpiresAt = (remote as any).expiresAt ?? expiresAt;
+        if (remoteExpiresAt) {
+          setExpiresAt(remoteExpiresAt);
+        }
+
+        persistAlertMeta({ id: alertId, status: remoteStatus, expiresAt: remoteExpiresAt ?? null });
+
+        if (remoteStatus === 'CLOSED') {
+          resetAlertVisualState('polling_backend_closed', 'CLOSED');
+        } else if (remoteStatus === 'EXPIRED') {
+          resetAlertVisualState('polling_backend_expired', 'EXPIRED');
+        }
+      } catch (error) {
+        // No bloqueamos UX si falla polling; fallback local sigue activo por expiresAt.
+        console.warn('No se pudo sincronizar estado de alerta con backend:', error);
+      }
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [alertSent, alertId, expiresAt]);
 
   /* =========================
      Cleanup - React Strict Mode safe
@@ -242,17 +345,22 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
       });
 
       const id = savedAlert?.id ?? null;
+      const savedStatus = normalizeStatus(savedAlert?.status ?? savedAlert?.estado ?? savedAlert?.state ?? 'ACTIVE');
+      const savedExpiresAt: string | null = savedAlert?.expiresAt ?? null;
 
-      if (id) {
+      if (id && savedStatus === 'ACTIVE') {
 
         setAlertId(id);
         localStorage.setItem("alertId", String(id));
+        persistAlertMeta({ id, status: savedStatus, expiresAt: savedExpiresAt });
         setAlertSent(true);
+        setExpiresAt(savedExpiresAt);
+        setIsActivated(true);
 
         console.log("Alerta creada con ID:", id);
 
         setIsTracking(true);
-        setAlertStatus('ACTIVE');
+        setAlertStatus(savedStatus);
         startLocationTracking(id, {
           onLocationUpdate: (loc) => {
             console.log("📍 Ubicación enviada:", loc);
@@ -264,8 +372,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
           },
           onAlertExpired: () => {
             console.log("⏰ Alerta expirada desde envío");
-            setAlertStatus('EXPIRED');
-            setIsTracking(false);
+            resetAlertVisualState('tracking_onAlertExpired_from_send', 'EXPIRED');
             setTrackingError('La alerta ya no está activa');
           }
         });
@@ -275,6 +382,8 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
       } else {
 
         alert("Alerta enviada pero no se recibió ID del servidor.");
+        setIsActivated(false);
+        setCountdown(0);
 
       }
 
@@ -321,18 +430,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
       }
 
       await closeAlert(id);
-
-      stopTracking('alert_closed');
-      setIsTracking(false);
-      setAlertStatus('CLOSED');
-
-      setAlertSent(false);
-      setAlertId(null);
-
-      localStorage.removeItem("alertId");
-
-      setIsActivated(false);
-      setCountdown(0);
+      resetAlertVisualState('alert_closed', 'CLOSED');
       setTrackingError(null);
 
       alert("Alerta cerrada");

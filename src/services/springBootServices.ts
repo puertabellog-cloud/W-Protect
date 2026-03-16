@@ -436,6 +436,99 @@ export const searchArticles = async (searchTerm: string): Promise<Article[]> => 
    ALERTAS
 ========================================================= */
 
+type AdminAlert = Alert & {
+  status?: string;
+  estado?: string;
+  state?: string;
+  activatedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  closedAt?: string;
+  expiresAt?: string;
+  userName?: string;
+  userEmail?: string;
+};
+
+type AlertStatusResponse = Alert & {
+  status?: string;
+  estado?: string;
+  state?: string;
+  activatedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  closedAt?: string;
+  expiresAt?: string;
+};
+
+export type AlertsGroupedByUserResponse = Record<string, { deviceId: string; alerts: AdminAlert[] }>;
+let inFlightAdminAlertsRequest: Promise<AlertsGroupedByUserResponse> | null = null;
+
+/**
+ * Obtener todas las alertas para panel admin.
+ * Contrato backend: GET /w/alerts/all
+ * Response: Record<userName, { deviceId, alerts[] }>
+ */
+export const getAllAlertsForAdmin = async (): Promise<AlertsGroupedByUserResponse> => {
+  if (inFlightAdminAlertsRequest) {
+    return inFlightAdminAlertsRequest;
+  }
+
+  const endpoint = API_ENDPOINTS.alerts.getAll;
+  const request = (async () => {
+    const session = getSession();
+    const headers: Record<string, string> = {};
+
+    if (session?.userId) {
+      headers['X-User-Id'] = String(session.userId);
+    }
+    if (session?.deviceId) {
+      headers['X-Device-Id'] = session.deviceId;
+    }
+
+    const response = await apiClient.get<unknown>(endpoint, { headers });
+    const payload = response.data;
+
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new Error('Formato inválido de alertas admin');
+    }
+
+    return payload as AlertsGroupedByUserResponse;
+  })();
+
+  inFlightAdminAlertsRequest = request;
+
+  try {
+    return await request;
+  } finally {
+    inFlightAdminAlertsRequest = null;
+  }
+};
+
+/**
+ * Obtener estado/detalle de una alerta por ID para sincronización de UI.
+ * Si el backend no expone el endpoint, devuelve null para fallback local.
+ */
+export const getAlertStatusById = async (alertId: number): Promise<AlertStatusResponse | null> => {
+  const candidateEndpoints = [
+    `/w/alerts/${alertId}`,
+    `/w/alerts/${alertId}/status`,
+  ];
+
+  for (const endpoint of candidateEndpoints) {
+    try {
+      const response = await apiClient.get<AlertStatusResponse>(endpoint);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return null;
+};
+
 /**
  * Crear alerta de emergencia
  */
