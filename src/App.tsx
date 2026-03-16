@@ -23,6 +23,7 @@ import { AuthWrapper } from './components/AuthWrapper';
 import AdminLibrary from './pages/AdminLibrary/AdminLibrary';
 import AdminAlerts from './pages/AdminLibrary/AdminAlerts';
 import AdminUsers from './pages/AdminLibrary/AdminUsers';
+import AdminProfile from './pages/AdminLibrary/AdminProfile';
 import { debugError, debugLog } from './utils/debug';
 
 /* Los estilos de Ionic ya están importados en main.tsx */
@@ -99,6 +100,7 @@ const App: React.FC = () => {
                 <Route exact path="/library" component={AdminLibrary} />
                 <Route exact path="/admin-alertas" component={AdminAlerts} />
                 <Route exact path="/admin-usuarios" component={AdminUsers} />
+                <Route exact path="/admin-profile" component={AdminProfile} />
                 <Route exact path="/" render={() => <Redirect to="/library" />} />
                 <Route render={() => <Redirect to="/library" />} />
               </IonRouterOutlet>
@@ -114,6 +116,10 @@ const App: React.FC = () => {
                 <IonTabButton tab="admin-usuarios" href="/admin-usuarios">
                   <IonIcon icon={peopleOutline} />
                   <IonLabel>Usuarios</IonLabel>
+                </IonTabButton>
+                <IonTabButton tab="admin-profile" href="/admin-profile">
+                  <IonIcon icon={personOutline} />
+                  <IonLabel>Perfil</IonLabel>
                 </IonTabButton>
               </IonTabBar>
             </IonTabs>

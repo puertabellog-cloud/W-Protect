@@ -506,7 +506,7 @@ const ContactsPage: React.FC = () => {
   // Estilos CSS modernos para la página
   const pageStyles = `
     .contacts-container {
-      background: linear-gradient(180deg, #fdf2f8 0%, #ffffff 100%);
+      background: linear-gradient(180deg, #fff7fb 0%, #ffffff 100%);
       min-height: 100vh;
       padding-bottom: 80px;
     }
@@ -514,14 +514,16 @@ const ContactsPage: React.FC = () => {
     .welcome-section {
       padding: 24px 20px 16px 20px;
       text-align: center;
-      background: rgba(255, 255, 255, 0.8);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 241, 247, 0.9));
       backdrop-filter: blur(10px);
       margin-bottom: 8px;
+      border: 1px solid rgba(236, 72, 153, 0.12);
+      border-radius: 0 0 24px 24px;
     }
     
     .welcome-icon {
       font-size: 2.2rem;
-      color: #ff4081;
+      color: #ec4899;
       margin-bottom: 8px;
     }
     
@@ -564,7 +566,7 @@ const ContactsPage: React.FC = () => {
     }
     
     .contacts-counter {
-      background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
+      background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
       color: white;
       font-size: 0.8rem;
       font-weight: 600;
@@ -576,10 +578,10 @@ const ContactsPage: React.FC = () => {
       background: white;
       border-radius: 20px;
       margin-bottom: 16px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 10px 28px rgba(236, 72, 153, 0.12);
       overflow: hidden;
       transition: all 0.3s ease;
-      border: 1px solid rgba(255, 64, 129, 0.1);
+      border: 1px solid rgba(236, 72, 153, 0.14);
       position: relative;
     }
     
@@ -590,12 +592,12 @@ const ContactsPage: React.FC = () => {
       left: 0;
       right: 0;
       height: 3px;
-      background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
+      background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
     }
     
     .contact-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 12px 32px rgba(255, 64, 129, 0.15);
+      box-shadow: 0 16px 36px rgba(236, 72, 153, 0.2);
     }
     
     .contact-item {
@@ -610,7 +612,7 @@ const ContactsPage: React.FC = () => {
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #ff4081 0%, #e91e63 100%);
+      background: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -619,7 +621,7 @@ const ContactsPage: React.FC = () => {
       font-size: 1.3rem;
       font-family: 'Poppins', sans-serif;
       letter-spacing: 0.5px;
-      box-shadow: 0 6px 16px rgba(255, 64, 129, 0.4);
+      box-shadow: 0 8px 18px rgba(219, 39, 119, 0.35);
       margin-right: 20px;
       border: 3px solid rgba(255, 255, 255, 0.3);
     }
@@ -653,7 +655,7 @@ const ContactsPage: React.FC = () => {
     
     .contact-phone ion-icon {
       font-size: 16px;
-      color: #ff4081;
+      color: #ec4899;
     }
     
     .empty-state {
@@ -661,14 +663,14 @@ const ContactsPage: React.FC = () => {
       padding: 60px 20px;
       background: white;
       border-radius: 20px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      border: 2px dashed rgba(255, 64, 129, 0.2);
+      box-shadow: 0 10px 28px rgba(236, 72, 153, 0.1);
+      border: 2px dashed rgba(236, 72, 153, 0.22);
     }
     
     .empty-icon {
       font-size: 5rem;
       margin-bottom: 20px;
-      color: #ff4081;
+      color: #ec4899;
       opacity: 0.7;
     }
     
@@ -690,9 +692,9 @@ const ContactsPage: React.FC = () => {
     }
     
     .add-button {
-      --background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+      --background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
       --border-radius: 20px;
-      --box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+      --box-shadow: 0 10px 26px rgba(190, 24, 93, 0.35);
       margin: 20px;
       height: 60px;
       font-weight: 700;
@@ -702,7 +704,7 @@ const ContactsPage: React.FC = () => {
     }
     
     .add-button:hover {
-      --box-shadow: 0 12px 32px rgba(16, 185, 129, 0.5);
+      --box-shadow: 0 14px 34px rgba(190, 24, 93, 0.45);
       transform: translateY(-2px);
     }
     
@@ -743,13 +745,13 @@ const ContactsPage: React.FC = () => {
     }
     
     .edit-button {
-      --background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      --background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
       --color: white;
-      --box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+      --box-shadow: 0 6px 14px rgba(236, 72, 153, 0.3);
     }
     
     .edit-button:hover {
-      --box-shadow: 0 6px 16px rgba(251, 191, 36, 0.4);
+      --box-shadow: 0 8px 18px rgba(219, 39, 119, 0.38);
     }
     
     .delete-button {
@@ -920,12 +922,12 @@ const ContactsPage: React.FC = () => {
           style={{
             '--background': emergencyContacts.length >= 5 
               ? 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)' 
-              : 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+              : 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
             '--color': emergencyContacts.length >= 5 ? '#9ca3af' : 'white',
             '--border-radius': '20px',
             '--box-shadow': emergencyContacts.length >= 5 
               ? '0 8px 20px rgba(0, 0, 0, 0.15)'
-              : '0 12px 30px rgba(16, 185, 129, 0.5)',
+              : '0 12px 30px rgba(190, 24, 93, 0.45)',
             height: '64px',
             fontWeight: '700',
             fontSize: '1.1rem',
@@ -948,8 +950,8 @@ const ContactsPage: React.FC = () => {
             fill="outline"
             onClick={openContacts}
             style={{
-              '--border-color': '#10b981',
-              '--color': '#10b981',
+              '--border-color': '#ec4899',
+              '--color': '#be185d',
               '--border-radius': '20px',
               height: '48px',
               fontWeight: '600',
@@ -968,23 +970,23 @@ const ContactsPage: React.FC = () => {
       {/* Modal de todos los contactos con buscador mejorado */}
       <IonModal isOpen={isModalOpen} onDidDismiss={() => setIsModalOpen(false)}>
         <IonHeader>
-          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #ff4081 0%, #e91e63 100%)', '--color': 'white' }}>
+          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', '--color': 'white' }}>
             <IonTitle style={{ fontWeight: '600' }}>
               <IonIcon icon={peopleOutline} style={{ marginRight: '8px', fontSize: '1.2rem' }} />
               Selecciona un contacto
             </IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent style={{ '--background': '#fafafa' }}>
+        <IonContent style={{ '--background': '#fff7fb' }}>
           <div style={{ padding: '16px 16px 8px 16px' }}>
             <IonSearchbar
               placeholder="Buscar por nombre..."
               debounce={300}
               onIonInput={handleSearch}
               style={{ 
-                '--background': 'white',
+                '--background': '#ffffff',
                 '--border-radius': '12px',
-                '--box-shadow': '0 2px 8px rgba(0,0,0,0.1)'
+                '--box-shadow': '0 8px 18px rgba(236, 72, 153, 0.12)'
               }}
             />
           </div>
@@ -1014,7 +1016,7 @@ const ContactsPage: React.FC = () => {
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #ff4081 0%, #e91e63 100%)',
+                      background: 'linear-gradient(135deg, #f472b6 0%, #db2777 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1045,20 +1047,20 @@ const ContactsPage: React.FC = () => {
       {/* Modal de edición mejorado */}
       <IonModal isOpen={isEditModalOpen} onDidDismiss={() => setIsEditModalOpen(false)}>
         <IonHeader>
-          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #ff4081 0%, #e91e63 100%)', '--color': 'white' }}>
+          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', '--color': 'white' }}>
             <IonTitle style={{ fontWeight: '600' }}>
               <IonIcon icon={create} style={{ marginRight: '8px', fontSize: '1.2rem' }} />
               Editar nombre
             </IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent style={{ '--background': '#fafafa' }}>
+        <IonContent style={{ '--background': '#fff7fb' }}>
           <div style={{ padding: '24px' }}>
             <div style={{
               background: 'white',
               borderRadius: '16px',
               padding: '24px',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              boxShadow: '0 10px 24px rgba(236, 72, 153, 0.14)',
               marginBottom: '20px'
             }}>
               <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -1066,7 +1068,7 @@ const ContactsPage: React.FC = () => {
                   width: '60px',
                   height: '60px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #ff4081 0%, #e91e63 100%)',
+                  background: 'linear-gradient(135deg, #f472b6 0%, #db2777 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1074,7 +1076,7 @@ const ContactsPage: React.FC = () => {
                   fontWeight: '700',
                   fontSize: '1.5rem',
                   margin: '0 auto 12px auto',
-                  boxShadow: '0 4px 12px rgba(255, 64, 129, 0.3)'
+                  boxShadow: '0 8px 16px rgba(219, 39, 119, 0.3)'
                 }}>
                   {editContactIndex !== null && getInitials(emergencyContacts[editContactIndex]?.name)}
                 </div>
@@ -1101,7 +1103,7 @@ const ContactsPage: React.FC = () => {
               expand="block" 
               onClick={saveEdit} 
               style={{ 
-                '--background': 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                '--background': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
                 '--border-radius': '12px',
                 height: '48px',
                 fontWeight: '600',
@@ -1137,7 +1139,7 @@ const ContactsPage: React.FC = () => {
         setManualContactPhone('');
       }}>
         <IonHeader>
-          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #10b981 0%, #047857 100%)', '--color': 'white' }}>
+          <IonToolbar style={{ '--background': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', '--color': 'white' }}>
             <IonTitle style={{ fontWeight: '600' }}>
               <IonIcon icon={personAdd} style={{ marginRight: '8px', fontSize: '1.2rem' }} />
               Agregar Contacto Manual
@@ -1155,7 +1157,7 @@ const ContactsPage: React.FC = () => {
             </IonButton>
           </IonToolbar>
         </IonHeader>
-        <IonContent style={{ '--background': '#fafafa' }}>
+        <IonContent style={{ '--background': '#fff7fb' }}>
           <div style={{ padding: '20px' }}>
             <p style={{ color: '#64748b', marginBottom: '20px', textAlign: 'center' }}>
               Agrega un contacto escribiendo su nombre y teléfono manualmente
@@ -1210,7 +1212,7 @@ const ContactsPage: React.FC = () => {
                     '--padding-end': '16px',
                     '--padding-top': '12px',
                     '--padding-bottom': '12px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    boxShadow: '0 8px 18px rgba(236, 72, 153, 0.1)',
                     border: '1px solid #e2e8f0',
                     flex: '1'
                   }}
@@ -1223,7 +1225,7 @@ const ContactsPage: React.FC = () => {
               onClick={addManualContact}
               disabled={!manualContactName.trim() || !manualContactPhone.trim()}
               style={{
-                '--background': 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                '--background': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
                 '--border-radius': '15px',
                 height: '55px',
                 fontWeight: '700',
@@ -1244,8 +1246,8 @@ const ContactsPage: React.FC = () => {
                 setManualContactPhone('');
               }}
               style={{
-                '--border-color': '#6b7280',
-                '--color': '#6b7280',
+                '--border-color': '#f9a8d4',
+                '--color': '#9d174d',
                 '--border-radius': '15px',
                 height: '45px',
                 fontWeight: '600'

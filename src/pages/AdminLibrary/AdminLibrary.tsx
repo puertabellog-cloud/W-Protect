@@ -153,25 +153,25 @@ const AdminLibrary: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>Biblioteca (Admin)</IonTitle>
+        <IonToolbar style={{ '--background': 'linear-gradient(135deg, #fce7f3 0%, #f9d7e8 100%)', '--color': '#7a284a' }}>
+          <IonTitle style={{ fontWeight: 700, textAlign: 'center' }}>Biblioteca (Admin)</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent>
+      <IonContent style={{ '--background': '#fff8fc' }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
             <IonSpinner />
           </div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{ textAlign: 'center', padding: '2rem', background: '#fff', margin: '16px', borderRadius: '18px', border: '1px solid #f4cde0', boxShadow: '0 10px 22px rgba(122, 40, 74, 0.08)' }}>
             <IonText color="medium">No hay recursos en la biblioteca.</IonText>
           </div>
         ) : (
-          <IonList>
+          <IonList style={{ background: 'transparent', padding: '10px 12px' }}>
             {items.map(item => (
-              <IonItem key={item.id}>
-                <IonIcon icon={linkOutline} slot="start" color="primary" />
+              <IonItem key={item.id} style={{ '--background': '#fff', borderRadius: '14px', marginBottom: '10px', border: '1px solid #f4cde0', boxShadow: '0 8px 20px rgba(122, 40, 74, 0.06)' }}>
+                <IonIcon icon={linkOutline} slot="start" style={{ color: '#b33f72' }} />
                 <IonLabel>
                   <h2>{item.name}</h2>
                   <p>{item.description}</p>
@@ -182,6 +182,7 @@ const AdminLibrary: React.FC = () => {
                   slot="end"
                   onClick={() => openEdit(item)}
                   aria-label="Editar"
+                  style={{ '--color': '#9d174d' }}
                 >
                   <IonIcon icon={createOutline} />
                 </IonButton>
@@ -201,7 +202,7 @@ const AdminLibrary: React.FC = () => {
 
         {/* FAB para crear nuevo recurso */}
         <IonFab vertical="bottom" horizontal="end" slot="fixed">
-          <IonFabButton onClick={openCreate} color="primary">
+          <IonFabButton onClick={openCreate} style={{ '--background': 'linear-gradient(135deg, #e879b3 0%, #be185d 100%)', '--box-shadow': '0 10px 20px rgba(190, 24, 93, 0.32)' }}>
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>
@@ -209,8 +210,8 @@ const AdminLibrary: React.FC = () => {
         {/* Modal crear/editar */}
         <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
           <IonHeader>
-            <IonToolbar>
-              <IonTitle>{editingItem ? 'Editar recurso' : 'Nuevo recurso'}</IonTitle>
+            <IonToolbar style={{ '--background': '#fff8fc', '--color': '#7a284a' }}>
+              <IonTitle style={{ textAlign: 'center' }}>{editingItem ? 'Editar recurso' : 'Nuevo recurso'}</IonTitle>
               <IonButtons slot="end">
                 <IonButton onClick={() => setShowModal(false)}>Cancelar</IonButton>
               </IonButtons>
@@ -248,6 +249,7 @@ const AdminLibrary: React.FC = () => {
                 expand="block"
                 onClick={handleSave}
                 disabled={saving || !isFormValid()}
+                style={{ '--background': 'linear-gradient(135deg, #e879b3 0%, #be185d 100%)', '--border-radius': '12px', height: '46px' }}
               >
                 {saving ? <IonSpinner name="crescent" /> : editingItem ? 'Guardar cambios' : 'Crear recurso'}
               </IonButton>

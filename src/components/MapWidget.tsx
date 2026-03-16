@@ -191,12 +191,12 @@ const MapWidget: React.FC = () => {
       console.log('🗺️ Creando mapa con Leaflet en:', location);
       
       // Asegurar que el contenedor tenga dimensiones
-      mapRef.current.style.height = '300px';
+      mapRef.current.style.height = '260px';
       mapRef.current.style.width = '100%';
-      mapRef.current.style.borderRadius = '12px';
+      mapRef.current.style.borderRadius = '16px';
       mapRef.current.style.overflow = 'hidden';
-      mapRef.current.style.border = '2px solid #e0e0e0';
-      mapRef.current.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      mapRef.current.style.border = '1px solid rgba(236, 72, 153, 0.15)';
+      mapRef.current.style.boxShadow = '0 10px 22px rgba(236, 72, 153, 0.12)';
       
       // Crear nuevo mapa con Leaflet
       const map = L.map(mapRef.current, {
@@ -222,16 +222,16 @@ const MapWidget: React.FC = () => {
         html: `
           <div style="
             position: relative;
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
           ">
             <div style="
-              background: linear-gradient(135deg, #ff4081, #ff6ec7);
-              width: 24px;
-              height: 24px;
+              background: linear-gradient(135deg, #f472b6, #be185d);
+              width: 26px;
+              height: 26px;
               border-radius: 50%;
               border: 4px solid white;
-              box-shadow: 0 4px 12px rgba(255, 64, 129, 0.4);
+              box-shadow: 0 4px 14px rgba(190, 24, 93, 0.45);
               position: absolute;
               top: 50%;
               left: 50%;
@@ -239,9 +239,9 @@ const MapWidget: React.FC = () => {
               animation: pulse 2s infinite;
             "></div>
             <div style="
-              background: rgba(255, 64, 129, 0.3);
-              width: 32px;
-              height: 32px;
+              background: rgba(236, 72, 153, 0.25);
+              width: 36px;
+              height: 36px;
               border-radius: 50%;
               position: absolute;
               top: 50%;
@@ -253,17 +253,17 @@ const MapWidget: React.FC = () => {
           <style>
             @keyframes pulse {
               0% { transform: translate(-50%, -50%) scale(1); }
-              50% { transform: translate(-50%, -50%) scale(1.1); }
+              50% { transform: translate(-50%, -50%) scale(1.12); }
               100% { transform: translate(-50%, -50%) scale(1); }
             }
             @keyframes ripple {
               0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
-              100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+              100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
             }
           </style>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
       });
 
       // Crear marcador
@@ -274,9 +274,9 @@ const MapWidget: React.FC = () => {
 
       // Añadir popup al marcador
       marker.bindPopup(`
-        <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <strong style="color: #ff4081;">📍 Tu ubicación actual</strong><br/>
-          <small style="color: #666;">Lat: ${location.lat.toFixed(6)}<br/>
+        <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 4px 2px;">
+          <strong style="color: #be185d;">Tu ubicación actual</strong><br/>
+          <small style="color: #64748b;">Lat: ${location.lat.toFixed(6)}<br/>
           Lng: ${location.lng.toFixed(6)}</small>
         </div>
       `, {
@@ -373,9 +373,9 @@ const MapWidget: React.FC = () => {
 
   return (
     <IonCard className="map-widget-card">
-      <IonCardHeader>
-        <IonCardTitle>
-          <IonIcon icon={locationOutline} style={{ marginRight: '8px' }} />
+      <IonCardHeader style={{ background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', padding: '14px 18px' }}>
+        <IonCardTitle style={{ color: 'white', fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <IonIcon icon={locationOutline} />
           Tu Ubicación
         </IonCardTitle>
       </IonCardHeader>
@@ -388,33 +388,35 @@ const MapWidget: React.FC = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '300px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '12px',
-              border: '2px solid #e0e0e0'
+              height: '260px',
+              background: 'linear-gradient(135deg, #fff7fb 0%, #ffffff 100%)',
+              borderRadius: '16px',
+              border: '1px solid rgba(236, 72, 153, 0.1)'
             }}>
-              <IonSpinner name="crescent" color="primary" style={{ transform: 'scale(1.2)' }} />
-              <p style={{ marginTop: '12px', color: '#666', fontSize: '14px' }}>Obteniendo ubicación...</p>
+              <IonSpinner name="crescent" style={{ '--color': '#ec4899', transform: 'scale(1.3)' }} />
+              <p style={{ marginTop: '14px', color: '#9d174d', fontSize: '14px', fontWeight: 600 }}>Obteniendo ubicación...</p>
             </div>
           )}
           
           {error && (
             <div className="map-error-widget" style={{
-              padding: '20px',
-              backgroundColor: '#ffebee',
-              borderRadius: '12px',
-              border: '2px solid #f44336',
+              padding: '24px',
+              background: 'linear-gradient(135deg, #fff7fb 0%, #ffe4f0 100%)',
+              borderRadius: '16px',
+              border: '1px solid rgba(236, 72, 153, 0.25)',
               textAlign: 'center'
             }}>
-              <IonText color="danger">
-                <p style={{ margin: '0 0 16px 0' }}>{error}</p>
+              <IonText>
+                <p style={{ margin: '0 0 18px 0', color: '#9d174d', fontWeight: 600 }}>{error}</p>
               </IonText>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <IonButton fill="solid" size="small" onClick={requestLocationPermission}>
+                <IonButton fill="solid" size="small" onClick={requestLocationPermission}
+                  style={{ '--background': 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', '--border-radius': '12px' }}>
                   <IonIcon icon={locationOutline} slot="start" />
                   Habilitar Ubicación
                 </IonButton>
-                <IonButton fill="outline" size="small" onClick={refreshLocation}>
+                <IonButton fill="outline" size="small" onClick={refreshLocation}
+                  style={{ '--border-color': '#f9a8d4', '--color': '#be185d', '--border-radius': '12px' }}>
                   <IonIcon icon={refreshOutline} slot="start" />
                   Reintentar
                 </IonButton>
@@ -461,7 +463,7 @@ const MapWidget: React.FC = () => {
                 fill="outline" 
                 expand="block" 
                 onClick={refreshLocation}
-                style={{ marginTop: '8px' }}
+                style={{ marginTop: '8px', '--border-color': '#f9a8d4', '--color': '#be185d', '--border-radius': '14px' }}
               >
                 <IonIcon icon={refreshOutline} slot="start" />
                 Actualizar Ubicación

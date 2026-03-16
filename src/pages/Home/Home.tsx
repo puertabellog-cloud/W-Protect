@@ -29,9 +29,12 @@ const Home: React.FC = () => {
     };
 
     const handleFeatureSelect = (feature: string) => {
-        if (feature === 'experiencias') {
+        if (feature === 'resources' || feature === 'experiencias') {
             // Navegar a la biblioteca de recursos
-            history.push('/recursos');
+            history.push('/recursos', { fromHome: true });
+        } else if (feature === 'profile') {
+            // Navegar al perfil de la usuaria
+            history.push('/profile', { fromHome: true });
         } else {
             // Para location y otras features, mostrar en el dashboard
             setCurrentScreen(feature as AppScreen);

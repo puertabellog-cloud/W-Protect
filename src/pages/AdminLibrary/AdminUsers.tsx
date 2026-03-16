@@ -44,12 +44,12 @@ const AdminUsers: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar color="primary">
-          <IonTitle>Usuarios</IonTitle>
+        <IonToolbar style={{ '--background': 'linear-gradient(135deg, #fce7f3 0%, #f9d7e8 100%)', '--color': '#7a284a' }}>
+          <IonTitle style={{ fontWeight: 700, textAlign: 'center' }}>Usuarios</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent>
+      <IonContent style={{ '--background': '#fff8fc' }}>
         {loading ? (
           <div
             style={{
@@ -72,11 +72,16 @@ const AdminUsers: React.FC = () => {
               gap: '1rem',
               padding: '2rem',
               textAlign: 'center',
+              background: '#fff',
+              margin: '16px',
+              borderRadius: '18px',
+              border: '1px solid #f4cde0',
+              boxShadow: '0 10px 22px rgba(122, 40, 74, 0.08)',
             }}
           >
             <IonIcon
               icon={peopleOutline}
-              style={{ fontSize: '4rem', color: 'var(--ion-color-primary)' }}
+              style={{ fontSize: '4rem', color: '#b33f72' }}
             />
             <IonText color="medium">
               <h2 style={{ margin: 0 }}>Sin usuarios para mostrar</h2>
@@ -87,18 +92,18 @@ const AdminUsers: React.FC = () => {
             </IonText>
           </div>
         ) : (
-          <IonList>
+          <IonList style={{ background: 'transparent', padding: '10px 12px' }}>
             {users.map(user => {
               const profile = normalizeProfile(user.profile);
 
               return (
-              <IonItem key={user.id ?? `${user.email}-${user.deviceId ?? 'no-device'}`}>
+              <IonItem key={user.id ?? `${user.email}-${user.deviceId ?? 'no-device'}`} style={{ '--background': '#fff', borderRadius: '14px', marginBottom: '10px', '--padding-start': '14px', '--padding-end': '10px', border: '1px solid #f4cde0', boxShadow: '0 8px 20px rgba(122, 40, 74, 0.06)' }}>
                 <IonLabel>
                   <h2>{user.name}</h2>
                   <p>{user.email}</p>
                   <p>{user.phone}</p>
                 </IonLabel>
-                <IonBadge color={profile === 'ADMIN' ? 'tertiary' : 'primary'}>
+                <IonBadge color={profile === 'ADMIN' ? 'tertiary' : 'primary'} style={{ fontWeight: 700, padding: '6px 10px', borderRadius: '10px' }}>
                   {profile || 'USER'}
                 </IonBadge>
               </IonItem>

@@ -11,7 +11,7 @@ import {
 import {
   warningOutline,
   locationOutline,
-  chatbubblesOutline,
+  personCircleOutline,
   bookOutline,
   shieldCheckmarkOutline
 } from 'ionicons/icons';
@@ -31,14 +31,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       title: 'Localización',
       description: 'Compartir ubicación en tiempo real',
       icon: locationOutline,
-      color: '#3b82f6'
+      color: '#0ea5e9'
     },
     {
-      id: 'experiencias',
-      title: 'Biblioteca de Recursos',
-      description: 'Artículos, guías y herramientas útiles',
-      icon: chatbubblesOutline,
-      color: '#a855f7'
+      id: 'profile',
+      title: 'Mi Perfil',
+      description: 'Actualiza tus datos y revisa tu información',
+      icon: personCircleOutline,
+      color: '#be185d'
     },
     {
       id: 'resources',
@@ -51,7 +51,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const dashboardStyles = `
     .dashboard-container {
-      background: linear-gradient(180deg, #fdf2f8 0%, #ffffff 100%);
+      background: linear-gradient(180deg, #fff7fb 0%, #ffffff 100%);
       min-height: 100vh;
       padding-bottom: 80px;
     }
@@ -59,14 +59,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
     .welcome-section {
       padding: 24px 20px 16px 20px;
       text-align: center;
-      background: rgba(255, 255, 255, 0.8);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 241, 247, 0.9));
       backdrop-filter: blur(10px);
       margin-bottom: 8px;
+      border: 1px solid rgba(236, 72, 153, 0.12);
+      border-radius: 0 0 24px 24px;
     }
     
     .welcome-icon {
       font-size: 2.2rem;
-      color: #ff4081;
+      color: #ec4899;
       margin-bottom: 8px;
     }
     
@@ -97,9 +99,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     
     .emergency-card {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      border-radius: 18px;
+      border-radius: 22px;
       margin: 0 16px 24px 16px;
-      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+      box-shadow: 0 12px 28px rgba(239, 68, 68, 0.28);
       cursor: pointer;
       transition: all 0.3s ease;
       position: relative;
@@ -108,7 +110,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     
     .emergency-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+      box-shadow: 0 16px 32px rgba(239, 68, 68, 0.36);
     }
     
     .emergency-content {
@@ -142,18 +144,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
     
     .feature-card {
       background: white;
-      border-radius: 16px;
+      border-radius: 20px;
       margin: 0 0 16px 0;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 10px 24px rgba(236, 72, 153, 0.1);
+      border: 1px solid rgba(236, 72, 153, 0.12);
       width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #f9a8d4 0%, #ec4899 100%);
     }
     
     .feature-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+      box-shadow: 0 14px 30px rgba(236, 72, 153, 0.16);
     }
     
     .feature-content {
