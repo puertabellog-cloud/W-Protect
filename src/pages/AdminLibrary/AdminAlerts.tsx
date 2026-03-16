@@ -17,16 +17,28 @@ import {
 import { alertCircleOutline } from 'ionicons/icons';
 import { getAllAlertsForAdmin } from '../../services/springBootServices';
 import { Alert } from '../../types';
+import { isAdmin } from '../../services/sessionService';
 
 type AdminAlertItem = Alert & {
   status?: string;
   estado?: string;
   state?: string;
+  activatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
   closedAt?: string;
+  expiresAt?: string;
   userName?: string;
   userEmail?: string;
+};
+
+type AlertRow = {
+  alertId: number | string;
+  userName: string;
+  deviceId: string;
+  status: string;
+  activatedAt: string;
+  message: string;
 };
 
 const normalizeAlertStatus = (alert: AdminAlertItem): string => {
@@ -46,8 +58,7 @@ const statusColor = (status: string): 'success' | 'warning' | 'danger' | 'medium
   return 'medium';
 };
 
-const formatDate = (alert: AdminAlertItem): string => {
-  const candidate = alert.timestamp ?? alert.createdAt ?? alert.updatedAt ?? '';
+const formatDateValue = (candidate: string): string => {
   if (!candidate) return 'Sin fecha';
   const dt = new Date(candidate);
   if (Number.isNaN(dt.getTime())) return candidate;
@@ -61,18 +72,51 @@ const formatDate = (alert: AdminAlertItem): string => {
 };
 
 const AdminAlerts: React.FC = () => {
-  const [alerts, setAlerts] = useState<AdminAlertItem[]>([]);
+  const [rows, setRows] = useState<AlertRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('No se pudieron cargar las alertas. Verifica el endpoint del backend.');
 
   useEffect(() => {
     const loadAlerts = async () => {
       try {
         setLoading(true);
-        const data = await getAllAlertsForAdmin();
-        setAlerts(data as AdminAlertItem[]);
+        const grouped = await getAllAlertsForAdmin();
+
+        const normalizedRows: AlertRow[] = Object.entries(grouped).flatMap(([userName, group]) => {
+          const list = Array.isArray(group?.alerts) ? group.alerts : [];
+
+          return list.map((alert: AdminAlertItem) => {
+            const status = normalizeAlertStatus(alert);
+            const activatedAtRaw =
+              alert.activatedAt ??
+              alert.timestamp ??
+              alert.createdAt ??
+              alert.updatedAt ??
+              alert.closedAt ??
+              alert.expiresAt ??
+              '';
+
+            return {
+              alertId: alert.id ?? '-',
+              userName,
+              deviceId: group?.deviceId ?? '-',
+              status,
+              activatedAt: formatDateValue(activatedAtRaw),
+              message: alert.message || 'Alerta sin mensaje',
+            };
+          });
+        });
+
+        setRows(normalizedRows);
       } catch (error) {
         console.error('Error cargando alertas admin:', error);
+        const backendMessage =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.response?.data?.error ||
+          (error as any)?.message ||
+          'Error interno del servidor';
+        setErrorMessage(`No se pudieron cargar las alertas: ${backendMessage}`);
         setShowError(true);
       } finally {
         setLoading(false);
@@ -91,7 +135,30 @@ const AdminAlerts: React.FC = () => {
       </IonHeader>
 
       <IonContent style={{ '--background': '#fff8fc' }}>
-        {loading ? (
+        {!isAdmin() ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '60vh',
+              gap: '1rem',
+              padding: '2rem',
+              textAlign: 'center',
+              background: '#fff',
+              margin: '16px',
+              borderRadius: '18px',
+              border: '1px solid #f4cde0',
+            }}
+          >
+            <IonIcon icon={alertCircleOutline} style={{ fontSize: '4rem', color: '#b33f72' }} />
+            <IonText color="medium">
+              <h2 style={{ margin: 0 }}>Acceso restringido</h2>
+              <p>Esta vista es solo para administradoras.</p>
+            </IonText>
+          </div>
+        ) : loading ? (
           <div
             style={{
               display: 'flex',
@@ -102,7 +169,7 @@ const AdminAlerts: React.FC = () => {
           >
             <IonSpinner />
           </div>
-        ) : alerts.length === 0 ? (
+        ) : rows.length === 0 ? (
           <div
             style={{
               display: 'flex',
@@ -128,41 +195,39 @@ const AdminAlerts: React.FC = () => {
           </div>
         ) : (
           <IonList style={{ background: 'transparent', padding: '10px 12px' }}>
-            {alerts.map((alert, index) => {
-              const status = normalizeAlertStatus(alert);
-              return (
-                <IonItem
-                  key={alert.id ?? `alert-${index}`}
-                  style={{
-                    '--background': '#fff',
-                    borderRadius: '14px',
-                    marginBottom: '10px',
-                    '--padding-start': '14px',
-                    '--padding-end': '10px',
-                    border: '1px solid #f4cde0',
-                    boxShadow: '0 8px 20px rgba(122, 40, 74, 0.06)',
-                  }}
-                >
-                  <IonLabel>
-                    <h2 style={{ marginBottom: '4px' }}>{alert.message || 'Alerta sin mensaje'}</h2>
-                    <p style={{ margin: '0 0 4px' }}>ID: {alert.id ?? '-'}</p>
-                    <p style={{ margin: '0 0 4px' }}>Usuario: {alert.userName || alert.userEmail || alert.userId || '-'}</p>
-                    <p style={{ margin: 0 }}>Fecha: {formatDate(alert)}</p>
-                  </IonLabel>
-                  <IonBadge color={statusColor(status)} style={{ fontWeight: 700, padding: '6px 10px', borderRadius: '10px' }}>
-                    {status}
-                  </IonBadge>
-                </IonItem>
-              );
-            })}
+            {rows.map((row, index) => (
+              <IonItem
+                key={`${row.alertId}-${index}`}
+                style={{
+                  '--background': '#fff',
+                  borderRadius: '14px',
+                  marginBottom: '10px',
+                  '--padding-start': '14px',
+                  '--padding-end': '10px',
+                  border: '1px solid #f4cde0',
+                  boxShadow: '0 8px 20px rgba(122, 40, 74, 0.06)',
+                }}
+              >
+                <IonLabel>
+                  <h2 style={{ marginBottom: '4px' }}>{row.message}</h2>
+                  <p style={{ margin: '0 0 4px' }}>Alerta ID: {row.alertId}</p>
+                  <p style={{ margin: '0 0 4px' }}>Usuaria: {row.userName}</p>
+                  <p style={{ margin: '0 0 4px' }}>Device ID: {row.deviceId}</p>
+                  <p style={{ margin: 0 }}>Activada: {row.activatedAt}</p>
+                </IonLabel>
+                <IonBadge color={statusColor(row.status)} style={{ fontWeight: 700, padding: '6px 10px', borderRadius: '10px' }}>
+                  {row.status}
+                </IonBadge>
+              </IonItem>
+            ))}
           </IonList>
         )}
 
         <IonToast
           isOpen={showError}
           onDidDismiss={() => setShowError(false)}
-          message="No se pudieron cargar las alertas. Verifica el endpoint del backend."
-          duration={3000}
+          message={errorMessage}
+          duration={4500}
           color="danger"
         />
       </IonContent>

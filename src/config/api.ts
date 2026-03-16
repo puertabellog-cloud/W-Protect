@@ -29,7 +29,7 @@ export const API_ENDPOINTS = {
   
   // Alerts Management (WalertController)
   alerts: {
-    getAll: '/w/alerts',        // GET /w/alerts
+    getAll: '/w/alerts/all',    // GET /w/alerts/all
     save: '/w/alerts',          // POST /w/alerts
     close: '/w/alerts',         // PUT /w/alerts/{id}/close
     locations: '/w/alerts',     // POST /w/alerts/{alertId}/locations
