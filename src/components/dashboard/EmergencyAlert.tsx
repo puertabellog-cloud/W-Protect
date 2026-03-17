@@ -123,6 +123,7 @@ export const EmergencyAlert: React.FC<EmergencyAlertProps> = ({ onBack }) => {
   useEffect(() => {
 
     const stored = localStorage.getItem("alertId");
+    const storedMetaRaw = localStorage.getItem(ALERT_META_KEY);
 
     if (!stored) return;
 

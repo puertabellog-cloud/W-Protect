@@ -13,6 +13,8 @@ import {
   IonBadge,
   IonSpinner,
   IonToast,
+  IonSelect,
+  IonSelectOption,
 } from '@ionic/react';
 import { alertCircleOutline } from 'ionicons/icons';
 import { getAllAlertsForAdmin } from '../../services/springBootServices';
@@ -38,6 +40,8 @@ type AlertRow = {
   deviceId: string;
   status: string;
   activatedAt: string;
+  activatedAtRaw: string;
+  activatedAtMs: number;
   message: string;
 };
 
@@ -76,6 +80,8 @@ const AdminAlerts: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('No se pudieron cargar las alertas. Verifica el endpoint del backend.');
+  const [selectedUser, setSelectedUser] = useState('all');
+  const [selectedDate, setSelectedDate] = useState('all');
 
   useEffect(() => {
     const loadAlerts = async () => {
@@ -103,6 +109,8 @@ const AdminAlerts: React.FC = () => {
               deviceId: group?.deviceId ?? '-',
               status,
               activatedAt: formatDateValue(activatedAtRaw),
+              activatedAtRaw,
+              activatedAtMs: activatedAtRaw ? new Date(activatedAtRaw).getTime() : 0,
               message: alert.message || 'Alerta sin mensaje',
             };
           });
@@ -125,6 +133,31 @@ const AdminAlerts: React.FC = () => {
 
     loadAlerts();
   }, []);
+
+  const userOptions = Array.from(new Set(rows.map(row => row.userName))).sort((a, b) => a.localeCompare(b));
+  const dateOptions = Array.from(
+    new Set(
+      rows
+        .map(row => {
+          if (!row.activatedAtRaw) return '';
+          const dt = new Date(row.activatedAtRaw);
+          if (Number.isNaN(dt.getTime())) return '';
+          return dt.toISOString().slice(0, 10);
+        })
+        .filter(Boolean)
+    )
+  ).sort((a, b) => b.localeCompare(a));
+
+  const filteredRows = rows
+    .filter(row => (selectedUser === 'all' ? true : row.userName === selectedUser))
+    .filter(row => {
+      if (selectedDate === 'all') return true;
+      if (!row.activatedAtRaw) return false;
+      const dt = new Date(row.activatedAtRaw);
+      if (Number.isNaN(dt.getTime())) return false;
+      return dt.toISOString().slice(0, 10) === selectedDate;
+    })
+    .sort((a, b) => b.activatedAtMs - a.activatedAtMs);
 
   return (
     <IonPage>
@@ -194,8 +227,67 @@ const AdminAlerts: React.FC = () => {
             </IonText>
           </div>
         ) : (
-          <IonList style={{ background: 'transparent', padding: '10px 12px' }}>
-            {rows.map((row, index) => (
+          <>
+            <div
+              style={{
+                margin: '14px 12px 6px',
+                padding: '12px',
+                borderRadius: '16px',
+                background: '#fff',
+                border: '1px solid #f4cde0',
+                boxShadow: '0 8px 20px rgba(122, 40, 74, 0.06)',
+                display: 'grid',
+                gap: '8px',
+              }}
+            >
+              <div>
+                <p style={{ margin: '0 0 4px', fontSize: '0.78rem', fontWeight: 700, color: '#9d174d' }}>Filtrar por usuaria</p>
+                <IonSelect value={selectedUser} interface="popover" onIonChange={e => setSelectedUser(e.detail.value)} style={{ '--placeholder-color': '#915067', '--color': '#7a284a', minHeight: '38px', border: '1px solid #f4cde0', borderRadius: '10px', padding: '0 8px', background: '#fff8fc', fontSize: '0.92rem' }}>
+                  <IonSelectOption value="all">Todas las usuarias</IonSelectOption>
+                  {userOptions.map(user => (
+                    <IonSelectOption key={user} value={user}>{user}</IonSelectOption>
+                  ))}
+                </IonSelect>
+              </div>
+
+              <div>
+                <p style={{ margin: '0 0 4px', fontSize: '0.78rem', fontWeight: 700, color: '#9d174d' }}>Filtrar por fecha</p>
+                <IonSelect value={selectedDate} interface="popover" onIonChange={e => setSelectedDate(e.detail.value)} style={{ '--placeholder-color': '#915067', '--color': '#7a284a', minHeight: '38px', border: '1px solid #f4cde0', borderRadius: '10px', padding: '0 8px', background: '#fff8fc', fontSize: '0.92rem' }}>
+                  <IonSelectOption value="all">Todas las fechas</IonSelectOption>
+                  {dateOptions.map(date => (
+                    <IonSelectOption key={date} value={date}>{date}</IonSelectOption>
+                  ))}
+                </IonSelect>
+              </div>
+            </div>
+
+            {filteredRows.length === 0 ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '32vh',
+                  gap: '0.7rem',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  background: '#fff',
+                  margin: '12px',
+                  borderRadius: '18px',
+                  border: '1px solid #f4cde0',
+                  boxShadow: '0 10px 22px rgba(122, 40, 74, 0.08)',
+                }}
+              >
+                <IonIcon icon={alertCircleOutline} style={{ fontSize: '3rem', color: '#b33f72' }} />
+                <IonText color="medium">
+                  <h2 style={{ margin: 0 }}>Sin resultados</h2>
+                  <p>No hay alertas que coincidan con los filtros seleccionados.</p>
+                </IonText>
+              </div>
+            ) : (
+              <IonList style={{ background: 'transparent', padding: '10px 12px' }}>
+                {filteredRows.map((row, index) => (
               <IonItem
                 key={`${row.alertId}-${index}`}
                 style={{
@@ -219,8 +311,10 @@ const AdminAlerts: React.FC = () => {
                   {row.status}
                 </IonBadge>
               </IonItem>
-            ))}
-          </IonList>
+                ))}
+              </IonList>
+            )}
+          </>
         )}
 
         <IonToast

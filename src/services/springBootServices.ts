@@ -449,17 +449,6 @@ type AdminAlert = Alert & {
   userEmail?: string;
 };
 
-type AlertStatusResponse = Alert & {
-  status?: string;
-  estado?: string;
-  state?: string;
-  activatedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  closedAt?: string;
-  expiresAt?: string;
-};
-
 export type AlertsGroupedByUserResponse = Record<string, { deviceId: string; alerts: AdminAlert[] }>;
 let inFlightAdminAlertsRequest: Promise<AlertsGroupedByUserResponse> | null = null;
 
@@ -502,31 +491,6 @@ export const getAllAlertsForAdmin = async (): Promise<AlertsGroupedByUserRespons
   } finally {
     inFlightAdminAlertsRequest = null;
   }
-};
-
-/**
- * Obtener estado/detalle de una alerta por ID para sincronización de UI.
- * Si el backend no expone el endpoint, devuelve null para fallback local.
- */
-export const getAlertStatusById = async (alertId: number): Promise<AlertStatusResponse | null> => {
-  const candidateEndpoints = [
-    `/w/alerts/${alertId}`,
-    `/w/alerts/${alertId}/status`,
-  ];
-
-  for (const endpoint of candidateEndpoints) {
-    try {
-      const response = await apiClient.get<AlertStatusResponse>(endpoint);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  return null;
 };
 
 /**
@@ -576,6 +540,28 @@ export const closeAlert = async (alertId: number): Promise<void> => {
 
     console.error('Error cerrando alerta:', error)
     throw new Error('Error cerrando alerta')
+
+  }
+}
+
+/**
+ * Consultar estado de una alerta específica.
+ * Si el endpoint no existe o la alerta no está disponible, retorna null.
+ */
+export const getAlertStatusById = async (alertId: number): Promise<Partial<AdminAlert> | null> => {
+  try {
+
+    const response = await apiClient.get(`/w/alerts/${alertId}`)
+    return response.data as Partial<AdminAlert>
+
+  } catch (error) {
+
+    if (axios.isAxiosError(error) && (error.response?.status === 404 || error.response?.status === 405)) {
+      return null
+    }
+
+    console.error('Error consultando estado de alerta:', error)
+    throw error
 
   }
 }

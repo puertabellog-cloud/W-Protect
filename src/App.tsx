@@ -32,13 +32,17 @@ import { debugError, debugLog } from './utils/debug';
 import { DeviceProvider } from './context/DeviceContext';
 
 /* Sesión */
-import { isAdmin, SESSION_CHANGED_EVENT } from './services/sessionService';
+import { getSession, isAdmin, SESSION_CHANGED_EVENT } from './services/sessionService';
 
 setupIonicReact();
 
 const App: React.FC = () => {
   const [forbiddenToast, setForbiddenToast] = useState(false);
   const [adminMode, setAdminMode] = useState(isAdmin());
+  const [hasUserAccess, setHasUserAccess] = useState(() => {
+    const registered = localStorage.getItem('w-protect-registered');
+    return registered === 'true' || Boolean(getSession());
+  });
 
   useEffect(() => {
     debugLog('App', 'render/update', {
@@ -70,12 +74,16 @@ const App: React.FC = () => {
     const updateAdminMode = () => {
       try {
         const next = isAdmin();
+        const registered = localStorage.getItem('w-protect-registered');
+        const nextHasUserAccess = registered === 'true' || Boolean(getSession());
         debugLog('App', 'session change detected', {
           nextAdminMode: next,
+          nextHasUserAccess,
           path: window.location.pathname,
           session: localStorage.getItem('w-protect-session'),
         });
         setAdminMode(next);
+        setHasUserAccess(nextHasUserAccess);
       } catch (error) {
         debugError('App', 'error evaluating isAdmin()', error);
       }
@@ -123,6 +131,15 @@ const App: React.FC = () => {
                 </IonTabButton>
               </IonTabBar>
             </IonTabs>
+          ) : !hasUserAccess ? (
+            <IonRouterOutlet>
+              <Route exact path="/">
+                <AuthWrapper />
+              </Route>
+              <Route>
+                <AuthWrapper />
+              </Route>
+            </IonRouterOutlet>
           ) : (
             <IonTabs>
               <IonRouterOutlet>
