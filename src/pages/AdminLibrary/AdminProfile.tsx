@@ -13,17 +13,14 @@ import {
 } from '@ionic/react';
 import { logOutOutline, shieldCheckmarkOutline, mailOutline, idCardOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
-import { clearSession, getSession } from '../../services/sessionService';
+import { clearAuthState, getSession } from '../../services/sessionService';
 
 const AdminProfile: React.FC = () => {
   const history = useHistory();
   const session = getSession();
 
   const handleLogout = () => {
-    clearSession();
-    localStorage.removeItem('w-protect-registered');
-    localStorage.removeItem('w-protect-user');
-    localStorage.removeItem('wprotect_registration');
+    clearAuthState();
     history.replace('/');
   };
 

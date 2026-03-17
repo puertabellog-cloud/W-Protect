@@ -34,9 +34,16 @@ export const setSession = (session: AppSession): void => {
   emitSessionChanged();
 };
 
-export const clearSession = (): void => {
+export const clearAuthState = (): void => {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem('w-protect-registered');
+  localStorage.removeItem('w-protect-user');
+  localStorage.removeItem('wprotect_registration');
   emitSessionChanged();
+};
+
+export const clearSession = (): void => {
+  clearAuthState();
 };
 
 export const normalizeProfile = (profile?: string | null): 'ADMIN' | 'USER' | '' => {

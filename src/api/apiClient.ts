@@ -1,6 +1,6 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_URL, REQUEST_TIMEOUT } from '../config/api';
-import { clearSession, getSession } from '../services/sessionService';
+import { clearAuthState, getSession } from '../services/sessionService';
 import { debugError, debugLog } from '../utils/debug';
 
 // Toast global para 403 (sin depender de hooks de React)
@@ -85,8 +85,7 @@ apiClient.interceptors.response.use(
     
     // Sesión inválida o headers faltantes
     if (error.response?.status === 401) {
-      clearSession();
-      localStorage.removeItem('w-protect-registered');
+      clearAuthState();
       window.location.href = '/';
     }
 
