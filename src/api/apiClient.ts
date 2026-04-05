@@ -32,8 +32,13 @@ const isPublicEmailLoginRoute = (url: string, method?: string): boolean => {
   return normalizedMethod === 'get' && /\/w\/users\/email\/.+/.test(url);
 };
 
+const isPublicPasswordLoginRoute = (url: string, method?: string): boolean => {
+  const normalizedMethod = (method || 'post').toLowerCase();
+  return normalizedMethod === 'post' && /\/w\/users\/login$/.test(url);
+};
+
 const isPublicRoute = (url: string, method?: string): boolean => {
-  return isPublicRegisterRoute(url, method) || isPublicEmailLoginRoute(url, method);
+  return isPublicRegisterRoute(url, method) || isPublicEmailLoginRoute(url, method) || isPublicPasswordLoginRoute(url, method);
 };
 
 // Interceptor para requests (headers de seguridad por sesión)
@@ -76,6 +81,10 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError) => {
+    const requestUrl = error.config?.url || '';
+    const requestMethod = error.config?.method;
+    const isPublicRequest = isPublicRoute(requestUrl, requestMethod);
+
     debugError('API', 'response error', {
       status: error.response?.status,
       url: error.config?.url,
@@ -84,7 +93,7 @@ apiClient.interceptors.response.use(
     });
     
     // Sesión inválida o headers faltantes
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isPublicRequest) {
       clearAuthState();
       window.location.href = '/';
     }

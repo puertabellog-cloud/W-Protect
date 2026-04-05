@@ -12,9 +12,10 @@ import {
 import {
   personOutline,
   callOutline,
-  mailOutline
+  mailOutline,
+  lockClosedOutline
 } from 'ionicons/icons';
-import { getUserByEmail, saveUser } from '../../services/springBootServices';
+import { getUserByEmail, saveUser, loginUser } from '../../services/springBootServices';
 import { useDevice } from '../../context/DeviceContext';
 import { sendWelcomeEmail } from '../../services/emailService';
 import { setSession } from '../../services/sessionService';
@@ -34,6 +35,7 @@ export const Register: React.FC<RegisterProps> = ({
     name: '',
     phone: '',
     email: '',
+    password: '',
     emergencyMessage: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -101,7 +103,12 @@ export const Register: React.FC<RegisterProps> = ({
 
   const handleRegister = async () => {
     if (!hasValidEmail()) {
-      setToastMessage('Ingresa un email valido para continuar');
+      setToastMessage('Ingresa un email válido para continuar');
+      return;
+    }
+
+    if (!form.password.trim()) {
+      setToastMessage('Ingresa tu contraseña para continuar');
       return;
     }
 
@@ -111,34 +118,47 @@ export const Register: React.FC<RegisterProps> = ({
       const existingUser = await getUserByEmail(form.email.trim());
 
       if (existingUser?.id) {
-        const sessionDeviceId = resolveDeviceId(existingUser.deviceId);
+        // Usuario existe - usar nuevo endpoint de login
+        try {
+          const loggedInUser = await loginUser(form.email, form.password);
 
-        if (!sessionDeviceId) {
-          setToastMessage('No se pudo resolver el deviceId para iniciar sesion.');
+          if (!loggedInUser?.id) {
+            setToastMessage('Error de servidor: usuario sin ID. Intenta nuevamente.');
+            return;
+          }
+
+          const sessionDeviceId = resolveDeviceId(loggedInUser.deviceId);
+
+          if (!sessionDeviceId) {
+            setToastMessage('No se pudo resolver el deviceId para iniciar sesión.');
+            return;
+          }
+
+          localStorage.setItem('device_id', sessionDeviceId);
+
+          setSession({
+            userId: loggedInUser.id,
+            deviceId: sessionDeviceId,
+            email: loggedInUser.email,
+            profile: loggedInUser.profile ?? 'USER',
+          });
+
+          localStorage.setItem('w-protect-registered', 'true');
+          localStorage.setItem('w-protect-user', JSON.stringify(loggedInUser));
+          localStorage.setItem('wprotect_registration', JSON.stringify(loggedInUser));
+
+          setToastMessage('Ingreso exitoso. Bienvenida de nuevo 💗');
+          completeAccess();
+          return;
+        } catch (loginError: any) {
+          setToastMessage(loginError.message || 'Credenciales inválidas. Por favor intenta nuevamente.');
           return;
         }
-
-        localStorage.setItem('device_id', sessionDeviceId);
-
-        setSession({
-          userId: existingUser.id,
-          deviceId: sessionDeviceId,
-          email: existingUser.email,
-          profile: existingUser.profile ?? 'USER',
-        });
-
-        localStorage.setItem('w-protect-registered', 'true');
-        localStorage.setItem('w-protect-user', JSON.stringify(existingUser));
-        localStorage.setItem('wprotect_registration', JSON.stringify(existingUser));
-
-        setToastMessage('Ingreso exitoso. Bienvenida de nuevo.');
-        completeAccess();
-        return;
       }
 
       // 2) Si no existe, crear cuenta con el flujo actual
       if (!isFormValid()) {
-        setToastMessage('Usuario nuevo: completa nombre y telefono para registrarte.');
+        setToastMessage('Usuario nuevo: completa nombre y teléfono para registrarte.');
         return;
       }
 
@@ -157,6 +177,7 @@ export const Register: React.FC<RegisterProps> = ({
         name: form.name.trim(),
         phone: form.phone.trim(),
         email: form.email.trim(),
+        password: form.password,
         deviceId: sessionDeviceId,
         active: true
       });
@@ -536,6 +557,21 @@ export const Register: React.FC<RegisterProps> = ({
               </div>
             </div>
 
+            {/* Password Input */}
+            <div className="input-group">
+              <div className="field-label">Contraseña *</div>
+              <div style={{ position: 'relative' }}>
+                <IonIcon icon={lockClosedOutline} className="input-icon" />
+                <input
+                  type="password"
+                  className="input-field"
+                  placeholder="Tu contraseña"
+                  value={form.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                />
+              </div>
+            </div>
+
             {/* Phone Input */}
             <div className="input-group">
               <div className="field-label">Número de Teléfono *</div>
@@ -555,7 +591,7 @@ export const Register: React.FC<RegisterProps> = ({
             <button
               className="register-button"
               onClick={handleRegister}
-              disabled={!hasValidEmail() || isLoading}
+              disabled={!hasValidEmail() || !form.password.trim() || isLoading}
             >
               {isLoading ? 'Validando acceso...' : 'Ingresar'}
             </button>

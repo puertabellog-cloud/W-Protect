@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from '../config/api'
 import { User, Contact, Alert, Article, ResourceCategory } from '../types'
 import { getSession, setSession } from './sessionService'
 import axios from 'axios'
+import { debugLog } from '../utils/debug'
 
 /* =========================================================
    USUARIOS
@@ -81,6 +82,42 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
 }
 
 /**
+ * Login con email y password
+ */
+export const loginUser = async (email: string, password: string): Promise<User> => {
+  try {
+    const emailFinal = email.trim().toLowerCase();
+    const passwordFinal = password;
+
+    debugLog('Auth', 'login request payload', {
+      endpoint: '/w/users/login',
+      emailFinal,
+      passwordLength: passwordFinal.length,
+    });
+
+    const payload = {
+      email: emailFinal,
+      password: passwordFinal
+    }
+
+    const response = await apiClient.post(
+      '/w/users/login',
+      payload
+    )
+
+    return response.data
+
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw new Error('Credenciales inválidas')
+    }
+
+    console.error('Error en login:', error)
+    throw new Error('Error en login')
+  }
+}
+
+/**
  * Crear o actualizar usuario
  */
 export const saveUser = async (user: User): Promise<User> => {
@@ -89,6 +126,7 @@ export const saveUser = async (user: User): Promise<User> => {
     const payload = {
       name: user.name,
       email: user.email,
+      password: user.password,
       phone: user.phone,
       profile: user.profile ?? 'USER',
       active: user.active ?? true,

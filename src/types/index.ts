@@ -12,6 +12,7 @@ export interface User {
   id?: number
   name: string
   email: string
+  password?: string
   phone: string
   deviceId?: string
   profile?: 'USER' | 'ADMIN'
