@@ -161,6 +161,8 @@ body {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 #root {
@@ -229,7 +231,41 @@ input {
   line-height: 1.5;
 }
 
-/* W-Protect Header Styles - iPhone optimized */
+/* Evita el auto-zoom de iOS al enfocar inputs en pantallas pequeñas
+   forzando un tamaño de fuente mínimo para inputs/textarea/select/button */
+@media (max-width: 420px) {
+  input,
+  textarea,
+  button,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Forzar 16px en elementos de Ionic y campos nativos dentro de componentes
+   Esto evita el auto-zoom de iOS incluso si hay estilos específicos por componente. */
+ion-input::part(native),
+ion-textarea::part(native),
+ion-input,
+ion-textarea,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+.native-input,
+.input-native,
+.input-wrapper input {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100% !important;
+}
+
+/* Evitar que iOS reescalice el texto al enfocar */
+html, body {
+  -webkit-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
+}
+
+/* W Protect Header Styles - iPhone optimized */
 .w-protect-logo {
   width: 28px;
   height: 28px;

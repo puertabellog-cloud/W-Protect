@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Register } from '../pages/Register/Register';
 import Home from '../pages/Home/Home';
-import { getSession, SESSION_CHANGED_EVENT } from '../services/sessionService';
+import { getSession, isAuthenticated, SESSION_CHANGED_EVENT } from '../services/sessionService';
 import { debugLog } from '../utils/debug';
 
 interface AuthWrapperProps {
@@ -14,7 +14,7 @@ export const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   useEffect(() => {
     const checkRegistration = () => {
       const registered = localStorage.getItem('w-protect-registered');
-      const hasSession = Boolean(getSession());
+      const hasSession = isAuthenticated();
       const nextValue = registered === 'true' || hasSession;
 
       debugLog('AuthWrapper', 'checkRegistration', {

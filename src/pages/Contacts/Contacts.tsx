@@ -98,9 +98,7 @@ const ContactsPage: React.FC = () => {
 
   // Si no conseguimos un id, podemos abortar o usar un fallback
   if (currentUserId === null) {
-    console.warn('⚠️ No hay userId disponible; los contactos no se cargarán.');
-    // Opcional: mostrar toast informativo al usuario
-    showToast('No se pudo identificar al usuario. Los contactos locales estarán disponibles.', 'warning');
+    console.debug('No hay userId disponible; cargando contactos locales si existen.');
     // Podemos aun cargar los contactos locales (offline) aquí si queremos
     loadEmergencyContacts();   // <-- llamamos a la función que ya tienes
     return;
@@ -124,7 +122,7 @@ const ContactsPage: React.FC = () => {
 
     // Verificar que tenemos un userId válido
     if (currentUserId === null) {
-      console.warn('No se puede cargar contactos sin userId');
+      console.debug('No se puede cargar contactos sin userId - usando fallback local si existe');
       return;
     }
 
@@ -151,50 +149,44 @@ const ContactsPage: React.FC = () => {
   };
 
   const saveContactToBackend = async (contactData: { name: string; phone: string }) => {
-    console.log("Intentando guardar contacto:", contactData);
-    console.log("Estado actual de userId:", currentUserId);
-    if (currentUserId === null) {
-      console.warn('Intentando guardar contacto antes de conocer el userId');
-      return;
-    }
+    // Restauramos comportamiento previo: si no hay `currentUserId`, usamos fallback `wusuarioId: -1`.
+    // Si no hay conexión, guardamos localmente y marcamos para sincronizar luego.
+    const wusuarioId = currentUserId === null ? -1 : currentUserId;
+
+    const contactToCreate = {
+      ...contactData,
+      wusuarioId
+    } as any;
+
+    // Si no hay conexión, guardar localmente y marcar pendingSync
     if (!isOnline) {
-      // Si no hay conexión, solo guardar localmente
-      const newContact: Contact = {
-        id: Date.now(), // ID temporal
-        ...contactData,
-        wusuarioId: currentUserId // Usar wusuarioId según la estructura de Contact
-      };
-      
-      const updated = [...emergencyContacts, newContact];
+      const tempId = Date.now();
+      const localContact: any = { id: tempId, ...contactToCreate, pendingSync: true };
+      const updated = [...emergencyContacts, localContact];
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
       localStorage.setItem('pendingSync', 'true');
-      
       showToast('Contacto guardado localmente. Se sincronizará cuando haya conexión.', 'warning');
       return;
     }
 
     try {
-      console.log("Creando nuevo contacto...");
-      
-      // Crear el objeto para nuevo contacto (sin ID)
-      const contactToCreate = {
-        ...contactData,
-        wusuarioId: currentUserId // Usar wusuarioId según la estructura de Contact
-        // No incluir 'id' para nuevo contacto
-      };
-      let dataToSend = JSON.stringify(contactToCreate);
-      console.log("Datos a enviar para creación:", dataToSend);
-      
+      console.log('Creando nuevo contacto en servidor...', contactToCreate);
       const savedContact = await createContact(contactToCreate);
       const updated = [...emergencyContacts, savedContact];
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
-      
       showToast(`Contacto agregado: ${contactData.name}`, 'success');
     } catch (error) {
-      console.error('Error guardando contacto:', error);
-      showToast('Error al guardar contacto en el servidor: ' + error, 'danger');
+      console.error('Error guardando contacto en servidor, guardando localmente:', error);
+      // Fallback local si falla la petición
+      const tempId = Date.now();
+      const localContact: any = { id: tempId, ...contactToCreate, pendingSync: true };
+      const updated = [...emergencyContacts, localContact];
+      setEmergencyContacts(updated);
+      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      localStorage.setItem('pendingSync', 'true');
+      showToast('No se pudo sincronizar con el servidor. Contacto guardado localmente.', 'warning');
     }
   };
 
@@ -944,27 +936,7 @@ const ContactsPage: React.FC = () => {
           }
         </IonButton>
         
-        {!isWeb && emergencyContacts.length < 5 && (
-          <IonButton
-            expand="block"
-            fill="outline"
-            onClick={openContacts}
-            style={{
-              '--border-color': '#ec4899',
-              '--color': '#be185d',
-              '--border-radius': '20px',
-              height: '48px',
-              fontWeight: '600',
-              fontSize: '1rem',
-              fontFamily: 'Poppins, sans-serif',
-              marginTop: '8px',
-              width: '100%'
-            }}
-          >
-            <IonIcon icon={peopleOutline} slot="start" style={{ fontSize: '1.1rem' }} />
-            Desde Contactos del Dispositivo
-          </IonButton>
-        )}
+        {/* Se elimina el botón secundario para mantener una sola acción 'Agregar Contacto' */}
       </div>
 
       {/* Modal de todos los contactos con buscador mejorado */}

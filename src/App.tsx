@@ -32,7 +32,7 @@ import { debugError, debugLog } from './utils/debug';
 import { DeviceProvider } from './context/DeviceContext';
 
 /* Sesión */
-import { getSession, isAdmin, SESSION_CHANGED_EVENT } from './services/sessionService';
+import { getSession, isAuthenticated, isAdmin, SESSION_CHANGED_EVENT } from './services/sessionService';
 
 setupIonicReact();
 
@@ -41,7 +41,7 @@ const App: React.FC = () => {
   const [adminMode, setAdminMode] = useState(isAdmin());
   const [hasUserAccess, setHasUserAccess] = useState(() => {
     const registered = localStorage.getItem('w-protect-registered');
-    return registered === 'true' || Boolean(getSession());
+    return registered === 'true' || isAuthenticated();
   });
 
   useEffect(() => {
@@ -71,11 +71,11 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const updateAdminMode = () => {
+        const updateAdminMode = () => {
       try {
         const next = isAdmin();
         const registered = localStorage.getItem('w-protect-registered');
-        const nextHasUserAccess = registered === 'true' || Boolean(getSession());
+        const nextHasUserAccess = registered === 'true' || isAuthenticated();
         debugLog('App', 'session change detected', {
           nextAdminMode: next,
           nextHasUserAccess,

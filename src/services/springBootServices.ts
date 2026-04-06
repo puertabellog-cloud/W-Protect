@@ -105,7 +105,23 @@ export const loginUser = async (email: string, password: string): Promise<User> 
       payload
     )
 
-    return response.data
+    const user: User = response.data;
+
+    // Persistir sesión inmediatamente después del login si viene el ID
+    try {
+      if (user?.id) {
+        setSession({
+          userId: user.id,
+          email: user.email,
+          deviceId: user.deviceId,
+          profile: user.profile ?? 'USER'
+        });
+      }
+    } catch (err) {
+      console.warn('No se pudo persistir sesión tras login:', err);
+    }
+
+    return user;
 
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {

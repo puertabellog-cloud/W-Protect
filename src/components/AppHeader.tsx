@@ -11,7 +11,7 @@ interface AppHeaderProps {
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ 
-  title = "W-Protect", 
+  title = "W Protect",
   isDarkMode = false, 
   onToggleDarkMode,
   showLogo = true 

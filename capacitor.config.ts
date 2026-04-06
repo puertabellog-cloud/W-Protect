@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.wprotect.app',
-  appName: 'W-Protect',
+  appName: 'W Protect',
   webDir: 'dist',
   server: {
     allowNavigation: ['/api/']
