@@ -11,6 +11,22 @@
 # production
 /dist
 
+# Build artifacts
+/build
+/android/app/build
+/android/build
+/android/.gradle
+
+# Capacitor/Android generated public assets
+/android/app/src/main/assets/public/
+
+# Archives
+/archive/
+
+# Local files
+/local.properties
+
+
 # misc
 .DS_Store
 .env.local
