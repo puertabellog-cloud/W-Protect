@@ -259,18 +259,20 @@ export const Register: React.FC<RegisterProps> = ({
     }
     
     .register-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 32px 28px;
+      background: rgba(255, 255, 255, 0.98);
+      /* reduce expensive paint on low-end devices */
+      /* backdrop-filter removed to avoid input lag when typing */
+      border-radius: 18px;
+      padding: 24px 20px;
       width: 100%;
-      max-width: 400px;
-      margin: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      max-width: 420px;
+      margin: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
       position: relative;
       z-index: 2;
-      max-height: 90vh;
+      max-height: 92vh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     
     .logo-container {
@@ -369,21 +371,27 @@ export const Register: React.FC<RegisterProps> = ({
     
     .input-field {
       width: 100%;
-      padding: 14px 14px 14px 50px;
-      border: 2px solid #e2e8f0;
-      border-radius: 14px;
-      font-size: 0.95rem;
+      padding: 12px 12px 12px 46px;
+      border: 1.5px solid #e6e6ea;
+      border-radius: 12px;
+      /* ensure readable size on Android and avoid browser zoom */
+      font-size: 16px !important;
+      line-height: 1.2;
       background: #ffffff;
-      transition: all 0.3s ease;
+      /* remove costly transitions while typing */
+      transition: none;
       color: #2d3748;
       font-family: inherit;
       box-sizing: border-box;
+      min-height: 44px;
+      -webkit-font-smoothing: antialiased;
     }
     
     .input-field:focus {
       outline: none;
       border-color: #ff4081;
-      box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
+      /* lighter focus ring to reduce repaints */
+      box-shadow: 0 0 0 2px rgba(255, 64, 129, 0.08);
     }
     
     .input-field::placeholder {

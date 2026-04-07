@@ -149,44 +149,41 @@ const ContactsPage: React.FC = () => {
   };
 
   const saveContactToBackend = async (contactData: { name: string; phone: string }) => {
-    // Restauramos comportamiento previo: si no hay `currentUserId`, usamos fallback `wusuarioId: -1`.
-    // Si no hay conexión, guardamos localmente y marcamos para sincronizar luego.
-    const wusuarioId = currentUserId === null ? -1 : currentUserId;
+    // Requerimos que exista un `currentUserId` válido y conexión en producción.
+    if (currentUserId === null) {
+      // No permitimos crear contactos sin userId; la app en producción siempre debe tenerlo.
+      console.error('Intento de guardar contacto sin userId disponible');
+      showToast('Error: usuario no identificado. Inicia sesión en el dispositivo.', 'danger');
+      return;
+    }
 
-    const contactToCreate = {
-      ...contactData,
-      wusuarioId
-    } as any;
-
-    // Si no hay conexión, guardar localmente y marcar pendingSync
     if (!isOnline) {
-      const tempId = Date.now();
-      const localContact: any = { id: tempId, ...contactToCreate, pendingSync: true };
-      const updated = [...emergencyContacts, localContact];
-      setEmergencyContacts(updated);
-      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
-      localStorage.setItem('pendingSync', 'true');
-      showToast('Contacto guardado localmente. Se sincronizará cuando haya conexión.', 'warning');
+      console.error('Intento de guardar contacto sin conexión');
+      showToast('No hay conexión. Conéctate a internet para agregar contactos.', 'danger');
       return;
     }
 
     try {
-      console.log('Creando nuevo contacto en servidor...', contactToCreate);
+      console.log("Creando nuevo contacto...");
+      
+      // Crear el objeto para nuevo contacto (sin ID)
+      const contactToCreate = {
+        ...contactData,
+        wusuarioId: currentUserId // Usar wusuarioId según la estructura de Contact
+        // No incluir 'id' para nuevo contacto
+      };
+      let dataToSend = JSON.stringify(contactToCreate);
+      console.log("Datos a enviar para creación:", dataToSend);
+      
       const savedContact = await createContact(contactToCreate);
       const updated = [...emergencyContacts, savedContact];
       setEmergencyContacts(updated);
       localStorage.setItem('emergencyContacts', JSON.stringify(updated));
+      
       showToast(`Contacto agregado: ${contactData.name}`, 'success');
     } catch (error) {
-      console.error('Error guardando contacto en servidor, guardando localmente:', error);
-      // Fallback local si falla la petición
-      const tempId = Date.now();
-      const localContact: any = { id: tempId, ...contactToCreate, pendingSync: true };
-      const updated = [...emergencyContacts, localContact];
-      setEmergencyContacts(updated);
-      localStorage.setItem('emergencyContacts', JSON.stringify(updated));
-      localStorage.setItem('pendingSync', 'true');
-      showToast('No se pudo sincronizar con el servidor. Contacto guardado localmente.', 'warning');
+      console.error('Error guardando contacto:', error);
+      showToast('Error al guardar contacto en el servidor: ' + error, 'danger');
     }
   };
 
@@ -467,6 +464,8 @@ const ContactsPage: React.FC = () => {
     
     setIsDeleteAlertOpen(false);
     setDeleteContactIndex(null);
+    // Cerrar cualquier IonItemSliding abierto para ocultar botones
+    closeAllSliding();
   };
 
   // === Editar alias ===
@@ -493,6 +492,22 @@ const ContactsPage: React.FC = () => {
 
     setIsEditModalOpen(false);
     setEditContactIndex(null);
+    // Al guardar, cerrar los sliders abiertos (si veníamos del deslizar)
+    closeAllSliding();
+  };
+
+  // Cierra todos los IonItemSliding abiertos en la vista
+  const closeAllSliding = () => {
+    try {
+      const sliders = document.querySelectorAll('ion-item-sliding');
+      sliders.forEach((s: any) => {
+        if (s && typeof s.close === 'function') {
+          s.close();
+        }
+      });
+    } catch (err) {
+      console.warn('No se pudieron cerrar los sliders automáticamente', err);
+    }
   };
 
   // Estilos CSS modernos para la página
@@ -1089,7 +1104,11 @@ const ContactsPage: React.FC = () => {
             <IonButton 
               expand="block" 
               fill="outline" 
-              onClick={() => setIsEditModalOpen(false)}
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setEditContactIndex(null);
+                closeAllSliding();
+              }}
               style={{ 
                 '--border-radius': '12px',
                 '--color': '#64748b',
